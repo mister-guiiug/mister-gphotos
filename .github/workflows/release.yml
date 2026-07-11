@@ -131,7 +131,7 @@ jobs:
             gh release upload $tag (Get-ChildItem release-assets/* | ForEach-Object FullName) --clobber
           } else {
             gh release create $tag `
-              --title "Google Photos Local Uploader $version" `
+              --title "mister-gphotos $version" `
               --notes $notes `
               --target $env:GITHUB_SHA `
               (Get-ChildItem release-assets/* | ForEach-Object FullName)
