@@ -199,7 +199,7 @@ iscc installer\setup.iss
 ```
 
 L'installeur est écrit dans `dist\installer\` sous le nom
-`GooglePhotosLocalUploader-Setup-1.0.0.exe`. Il s'installe **sans droits administrateur**
+`mister-gphotos-Setup-1.0.0.exe`. Il s'installe **sans droits administrateur**
 (`PrivilegesRequired=lowest`) et est en français.
 
 À la désinstallation, les données locales (`%APPDATA%\GooglePhotosLocalUploader`, qui

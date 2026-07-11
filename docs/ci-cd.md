@@ -31,11 +31,11 @@ C'est le filet de sécurité : aucune régression ne passe inaperçue.
    - un **dossier** win-x64, empaqueté ensuite par l'installeur ;
    - un **exécutable portable** (fichier unique, ~70 Mo) ;
 4. installe **Inno Setup** (via Chocolatey) et construit l'installeur
-   `GooglePhotosLocalUploader-Setup-<version>.exe` ;
+   `mister-gphotos-Setup-<version>.exe` ;
 5. calcule les empreintes **SHA-256** (`SHA256SUMS.txt`) ;
 6. crée (ou met à jour) la **Release GitHub** correspondant au tag et y attache :
-   - `GooglePhotosLocalUploader-Setup-<version>.exe` (installeur, recommandé) ;
-   - `GooglePhotosLocalUploader-<version>-portable.exe` (portable, un seul fichier) ;
+   - `mister-gphotos-Setup-<version>.exe` (installeur, recommandé) ;
+   - `mister-gphotos-<version>-portable.exe` (portable, un seul fichier) ;
    - `SHA256SUMS.txt`.
 
 La Release utilise le `GITHUB_TOKEN` fourni automatiquement (permission `contents: write`) :

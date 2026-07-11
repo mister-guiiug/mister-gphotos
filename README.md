@@ -53,7 +53,7 @@ L'application n'utilise pas de client OAuth partagé : chaque utilisateur crée 
 
 ### Option A — Via l'installeur (recommandé)
 
-1. Récupérez l'installeur `GooglePhotosLocalUploader-Setup-<version>.exe` depuis la page **Releases** du dépôt (généré automatiquement par la CI/CD à chaque tag `vX.Y.Z`, voir [docs/ci-cd.md](docs/ci-cd.md)), ou compilez-le localement (`dist\installer\`).
+1. Récupérez l'installeur `mister-gphotos-Setup-<version>.exe` depuis la page **Releases** du dépôt (généré automatiquement par la CI/CD à chaque tag `vX.Y.Z`, voir [docs/ci-cd.md](docs/ci-cd.md)), ou compilez-le localement (`dist\installer\`).
 2. Lancez-le : installation par utilisateur, sans droits administrateur (`PrivilegesRequired=lowest`), assistant en français, icône de bureau optionnelle.
 3. Démarrez « Google Photos Local Uploader » depuis le menu Démarrer.
 

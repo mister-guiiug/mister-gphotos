@@ -1,6 +1,6 @@
 # Création de l'installeur Windows
 
-Ce document décrit comment fabriquer l'installeur de **Google Photos Local Uploader** (fichier `GooglePhotosLocalUploader-Setup-1.0.0.exe`), ce que fait cet installeur sur la machine de l'utilisateur, et ce que la désinstallation supprime — ou conserve volontairement.
+Ce document décrit comment fabriquer l'installeur de **Google Photos Local Uploader** (fichier `mister-gphotos-Setup-1.0.0.exe`), ce que fait cet installeur sur la machine de l'utilisateur, et ce que la désinstallation supprime — ou conserve volontairement.
 
 La première partie (fabrication) s'adresse à un développeur ; la seconde (comportement de l'installeur et désinstallation) est lisible par tous.
 
@@ -50,10 +50,10 @@ iscc installer\setup.iss
 Le script `installer/setup.iss` empaquette tout le contenu de `dist\win-x64\*` (récursivement) et produit l'installeur dans :
 
 ```
-dist\installer\GooglePhotosLocalUploader-Setup-1.0.0.exe
+dist\installer\mister-gphotos-Setup-1.0.0.exe
 ```
 
-Le nom du fichier suit le motif `GooglePhotosLocalUploader-Setup-{version}` défini par `OutputBaseFilename` dans `setup.iss` (version actuelle : `1.0.0`, constante `MyAppVersion`).
+Le nom du fichier suit le motif `mister-gphotos-Setup-{version}` défini par `OutputBaseFilename` dans `setup.iss` (version actuelle : `1.0.0`, constante `MyAppVersion`).
 
 > **Ordre obligatoire** : l'étape 1 doit précéder l'étape 2. Si `dist\win-x64\` n'existe pas ou est obsolète, `iscc` échouera ou empaquettera une version périmée.
 
@@ -101,7 +101,7 @@ L'installeur produit n'est **pas signé numériquement** : le projet ne fournit 
 Si vous disposez de votre propre certificat de signature de code (certificat OV/EV acheté auprès d'une autorité de certification, ou via Azure Trusted Signing), vous pouvez signer :
 
 1. **Les binaires publiés** après l'étape `publish.ps1` (par exemple `dist\win-x64\GooglePhotosLocalUploader.exe`) avec `signtool sign`.
-2. **L'installeur lui-même**, soit en signant `dist\installer\GooglePhotosLocalUploader-Setup-1.0.0.exe` après compilation, soit en configurant la directive `SignTool` d'Inno Setup dans `setup.iss`.
+2. **L'installeur lui-même**, soit en signant `dist\installer\mister-gphotos-Setup-1.0.0.exe` après compilation, soit en configurant la directive `SignTool` d'Inno Setup dans `setup.iss`.
 
 Aucune de ces étapes n'est requise pour que l'installeur fonctionne ; elles servent uniquement à réduire les avertissements de sécurité de Windows.
 
@@ -113,5 +113,5 @@ Aucune de ces étapes n'est requise pour que l'installeur fonctionne ; elles ser
 # Depuis la racine du dépôt :
 .\build\build.ps1        # optionnel : compile + tests
 .\build\publish.ps1      # publie l'app auto-contenue dans dist\win-x64\
-iscc installer\setup.iss # produit dist\installer\GooglePhotosLocalUploader-Setup-1.0.0.exe
+iscc installer\setup.iss # produit dist\installer\mister-gphotos-Setup-1.0.0.exe
 ```
