@@ -1,0 +1,75 @@
+<Window x:Class="GPhotosUploader.App.Views.OAuthWizardWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Assistant de configuration Google Cloud"
+        Height="600" Width="720" MinHeight="520" MinWidth="640"
+        WindowStartupLocation="CenterOwner" ShowInTaskbar="False">
+    <Window.Resources>
+        <BooleanToVisibilityConverter x:Key="BoolToVisibility" />
+    </Window.Resources>
+    <DockPanel Margin="16">
+
+        <!-- Barre de navigation -->
+        <Grid DockPanel.Dock="Bottom" Margin="0,14,0,0">
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Left">
+                <Button Content="Annuler" Command="{Binding CancelCommand}" />
+            </StackPanel>
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                <Button Content="◀ Précédent" Command="{Binding PreviousCommand}" />
+                <Button Content="Suivant ▶" Command="{Binding NextCommand}" FontWeight="Bold"
+                        Visibility="{Binding IsNotFinalStep, Converter={StaticResource BoolToVisibility}}" />
+                <Button Content="Terminer" Command="{Binding FinishCommand}"
+                        CommandParameter="{Binding ElementName=WizardSecretBox}" FontWeight="Bold"
+                        Visibility="{Binding IsFinalStep, Converter={StaticResource BoolToVisibility}}"
+                        Margin="0" />
+            </StackPanel>
+        </Grid>
+
+        <StackPanel>
+            <!-- En-tête de progression -->
+            <TextBlock Text="{Binding ProgressText}" FontSize="16" FontWeight="Bold" Margin="0,0,0,4" />
+            <ProgressBar Minimum="0" Maximum="{Binding ProgressMaximum, Mode=OneWay}"
+                         Value="{Binding ProgressValue, Mode=OneWay}" Height="6" Margin="0,0,0,14" />
+
+            <!-- Corps de l'étape -->
+            <ScrollViewer VerticalScrollBarVisibility="Auto" MaxHeight="330">
+                <TextBlock Text="{Binding CurrentStep.Body}" TextWrapping="Wrap" FontSize="13"
+                           LineHeight="20" />
+            </ScrollViewer>
+
+            <!-- Lien vers la console -->
+            <Button Content="{Binding CurrentStep.LinkLabel}" Command="{Binding OpenLinkCommand}"
+                    Visibility="{Binding CurrentStep.HasLink, Converter={StaticResource BoolToVisibility}}"
+                    HorizontalAlignment="Left" Margin="0,14,0,0" FontWeight="Bold" Padding="16,8" />
+
+            <!-- Saisie finale des identifiants -->
+            <StackPanel Visibility="{Binding IsFinalStep, Converter={StaticResource BoolToVisibility}}"
+                        Margin="0,14,0,0">
+                <Button Content="Importer le fichier client_secret_….json"
+                        Command="{Binding ImportJsonCommand}" HorizontalAlignment="Left"
+                        FontWeight="Bold" Padding="16,8" Margin="0,0,0,6" />
+                <TextBlock Text="{Binding ImportStatus}" Foreground="Green" TextWrapping="Wrap"
+                           Margin="0,0,0,10" />
+
+                <TextBlock Text="… ou saisissez les valeurs manuellement :" Margin="0,0,0,6" />
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="140" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+                    <TextBlock Grid.Row="0" Grid.Column="0" Text="Client ID :" VerticalAlignment="Center" Margin="0,0,8,6" />
+                    <TextBox Grid.Row="0" Grid.Column="1" Text="{Binding ClientId, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,6" />
+                    <TextBlock Grid.Row="1" Grid.Column="0" Text="Client Secret :" VerticalAlignment="Center" Margin="0,0,8,0" />
+                    <PasswordBox Grid.Row="1" Grid.Column="1" x:Name="WizardSecretBox" />
+                </Grid>
+
+                <TextBlock Text="{Binding ValidationMessage}" Foreground="Firebrick" TextWrapping="Wrap"
+                           Margin="0,10,0,0" />
+            </StackPanel>
+        </StackPanel>
+    </DockPanel>
+</Window>

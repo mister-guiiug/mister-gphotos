@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <LangVersion>latest</LangVersion>
+    <RootNamespace>GPhotosUploader.App</RootNamespace>
+    <AssemblyName>GooglePhotosLocalUploader</AssemblyName>
+    <ApplicationTitle>Google Photos Local Uploader</ApplicationTitle>
+    <Version>1.0.0</Version>
+    <Authors>Google Photos Local Uploader</Authors>
+    <Product>Google Photos Local Uploader</Product>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="CommunityToolkit.Mvvm" Version="8.2.2" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\GPhotosUploader.Core\GPhotosUploader.Core.csproj" />
+  </ItemGroup>
+
+</Project>

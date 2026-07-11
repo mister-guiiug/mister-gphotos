@@ -1,0 +1,231 @@
+<Window x:Class="GPhotosUploader.App.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Google Photos Local Uploader"
+        Height="780" Width="1100" MinHeight="640" MinWidth="920"
+        WindowStartupLocation="CenterScreen">
+    <DockPanel Margin="12">
+
+        <StatusBar DockPanel.Dock="Bottom">
+            <StatusBarItem>
+                <TextBlock Text="{Binding StateText}" FontWeight="Bold" />
+            </StatusBarItem>
+            <Separator />
+            <StatusBarItem>
+                <TextBlock Text="{Binding StatusMessage}" />
+            </StatusBarItem>
+        </StatusBar>
+
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+            </Grid.RowDefinitions>
+
+            <!-- Configuration -->
+            <GroupBox Grid.Row="0" Header="Configuration">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+
+                    <TextBlock Grid.Row="0" Grid.Column="0" Text="Dossier racine :"
+                               VerticalAlignment="Center" Margin="0,0,8,6" />
+                    <TextBox Grid.Row="0" Grid.Column="1" Text="{Binding RootFolder, Mode=OneWay}"
+                             IsReadOnly="True" VerticalAlignment="Center" Margin="0,0,8,6" />
+                    <Button Grid.Row="0" Grid.Column="2" Content="Parcourir..."
+                            Command="{Binding BrowseFolderCommand}" Margin="0,0,8,6" />
+
+                    <TextBlock Grid.Row="1" Grid.Column="0" Text="Compte Google :"
+                               VerticalAlignment="Center" Margin="0,0,8,0" />
+                    <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding AccountStatusText}"
+                               VerticalAlignment="Center" FontWeight="SemiBold" />
+                    <Button Grid.Row="1" Grid.Column="2" Content="Connecter mon compte Google"
+                            Command="{Binding ConnectCommand}"
+                            CommandParameter="{Binding ElementName=ClientSecretBox}" />
+                    <Button Grid.Row="1" Grid.Column="3" Content="Déconnecter"
+                            Command="{Binding DisconnectCommand}" Margin="0" />
+                </Grid>
+            </GroupBox>
+
+            <!-- Actions -->
+            <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,0,0,10">
+                <Button Content="Scanner le dossier" Command="{Binding ScanCommand}" FontWeight="Bold" />
+                <Button Content="Démarrer l'upload" Command="{Binding StartCommand}" FontWeight="Bold" />
+                <Button Content="Pause" Command="{Binding PauseCommand}" />
+                <Button Content="Reprendre" Command="{Binding ResumeCommand}" />
+                <Button Content="Arrêter" Command="{Binding StopCommand}" />
+            </StackPanel>
+
+            <!-- Progression -->
+            <GroupBox Grid.Row="2" Header="Progression">
+                <StackPanel>
+                    <Grid Margin="0,0,0,6">
+                        <ProgressBar Value="{Binding GlobalProgress, Mode=OneWay}" Maximum="100" Height="22" />
+                        <TextBlock Text="{Binding GlobalProgressText}" HorizontalAlignment="Center"
+                                   VerticalAlignment="Center" FontWeight="SemiBold" />
+                    </Grid>
+
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
+                        <TextBlock Text="Détectés : " /><TextBlock Text="{Binding TotalFiles}" FontWeight="Bold" />
+                        <TextBlock Text="    En attente : " /><TextBlock Text="{Binding PendingCount}" FontWeight="Bold" />
+                        <TextBlock Text="    Uploadés : " /><TextBlock Text="{Binding UploadedCount}" FontWeight="Bold" Foreground="Green" />
+                        <TextBlock Text="    Ignorés : " /><TextBlock Text="{Binding SkippedCount}" FontWeight="Bold" Foreground="DarkOrange" />
+                        <TextBlock Text="    Erreurs : " /><TextBlock Text="{Binding ErrorCount}" FontWeight="Bold" Foreground="Firebrick" />
+                    </StackPanel>
+
+                    <ProgressBar Value="{Binding CurrentFileProgress, Mode=OneWay}" Maximum="100" Margin="0,0,0,4" />
+                    <TextBlock Text="{Binding CurrentFileText}" Margin="0,0,0,4" TextTrimming="CharacterEllipsis" />
+
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="{Binding ThroughputText}" Margin="0,0,20,0" />
+                        <TextBlock Text="{Binding EtaText}" />
+                    </StackPanel>
+
+                    <TextBlock Text="{Binding LastError}" Foreground="Firebrick" TextWrapping="Wrap"
+                               Margin="0,4,0,0" TextTrimming="CharacterEllipsis" MaxHeight="40" />
+                </StackPanel>
+            </GroupBox>
+
+            <!-- Onglets -->
+            <TabControl Grid.Row="3">
+
+                <TabItem Header="Journal">
+                    <ListBox ItemsSource="{Binding LogLines}" FontFamily="Consolas" FontSize="12"
+                             ScrollViewer.HorizontalScrollBarVisibility="Auto"
+                             VirtualizingPanel.IsVirtualizing="True" />
+                </TabItem>
+
+                <TabItem Header="Détails des fichiers">
+                    <DockPanel Margin="6">
+                        <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="0,0,0,6">
+                            <TextBlock Text="Filtre : " VerticalAlignment="Center" />
+                            <ComboBox ItemsSource="{Binding StatusFilters}"
+                                      SelectedItem="{Binding SelectedStatusFilter}"
+                                      Width="220" Margin="0,0,10,0" />
+                            <Button Content="Actualiser" Command="{Binding RefreshDetailsCommand}" />
+                            <Button Content="Relancer les fichiers en erreur" Command="{Binding ResetFailedCommand}" />
+                        </StackPanel>
+                        <DataGrid ItemsSource="{Binding FileRows}" AutoGenerateColumns="False" IsReadOnly="True"
+                                  EnableRowVirtualization="True" GridLinesVisibility="Horizontal"
+                                  HeadersVisibility="Column">
+                            <DataGrid.Columns>
+                                <DataGridTextColumn Header="Fichier" Binding="{Binding FileName}" Width="200" />
+                                <DataGridTextColumn Header="Statut" Binding="{Binding StatusText}" Width="160" />
+                                <DataGridTextColumn Header="Taille" Binding="{Binding SizeText}" Width="80" />
+                                <DataGridTextColumn Header="Uploadé le" Binding="{Binding UploadedText}" Width="130" />
+                                <DataGridTextColumn Header="Erreur / raison" Binding="{Binding ErrorText}" Width="260" />
+                                <DataGridTextColumn Header="Chemin" Binding="{Binding LocalPath}" Width="*" />
+                            </DataGrid.Columns>
+                        </DataGrid>
+                    </DockPanel>
+                </TabItem>
+
+                <TabItem Header="Historique">
+                    <DockPanel Margin="6">
+                        <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="0,0,0,6">
+                            <Button Content="Actualiser" Command="{Binding RefreshHistoryCommand}" />
+                            <Button Content="Exporter le journal..." Command="{Binding ExportLogCommand}" />
+                        </StackPanel>
+                        <DataGrid ItemsSource="{Binding BatchRows}" AutoGenerateColumns="False" IsReadOnly="True"
+                                  GridLinesVisibility="Horizontal" HeadersVisibility="Column">
+                            <DataGrid.Columns>
+                                <DataGridTextColumn Header="Batch" Binding="{Binding Id}" Width="60" />
+                                <DataGridTextColumn Header="Démarré" Binding="{Binding CreatedText}" Width="140" />
+                                <DataGridTextColumn Header="Terminé" Binding="{Binding CompletedText}" Width="140" />
+                                <DataGridTextColumn Header="Fichiers" Binding="{Binding FileCount}" Width="80" />
+                                <DataGridTextColumn Header="Réussis" Binding="{Binding SuccessCount}" Width="80" />
+                                <DataGridTextColumn Header="Échecs" Binding="{Binding FailureCount}" Width="80" />
+                                <DataGridTextColumn Header="Statut" Binding="{Binding Status}" Width="*" />
+                            </DataGrid.Columns>
+                        </DataGrid>
+                    </DockPanel>
+                </TabItem>
+
+                <TabItem Header="Paramètres">
+                    <ScrollViewer VerticalScrollBarVisibility="Auto">
+                        <StackPanel Margin="10" MaxWidth="720" HorizontalAlignment="Left">
+
+                            <TextBlock Text="Authentification Google" FontSize="15" FontWeight="Bold" Margin="0,0,0,6" />
+                            <TextBlock TextWrapping="Wrap" Margin="0,0,0,8"
+                                       Text="Chaque utilisateur crée son propre client OAuth « Application de bureau » dans Google Cloud (Google ne permet pas d'automatiser cette création). L'assistant ci-dessous vous guide pas à pas et importe le fichier téléchargé — sinon, renseignez le Client ID et le Client Secret manuellement (guide : docs/google-cloud-setup.md). Aucun mot de passe Google ne vous sera jamais demandé : la connexion se fait dans votre navigateur. Le refresh token et le client secret sont conservés dans le Gestionnaire d'identifiants Windows, jamais en clair." />
+                            <Button Content="Assistant de configuration Google Cloud..."
+                                    Command="{Binding OpenOAuthWizardCommand}" HorizontalAlignment="Left"
+                                    FontWeight="Bold" Margin="0,0,0,10" />
+                            <Grid Margin="0,0,0,12">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="160" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                </Grid.RowDefinitions>
+                                <TextBlock Grid.Row="0" Grid.Column="0" Text="Client ID OAuth :" VerticalAlignment="Center" Margin="0,0,8,6" />
+                                <TextBox Grid.Row="0" Grid.Column="1" Text="{Binding OAuthClientId, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,6" />
+                                <TextBlock Grid.Row="1" Grid.Column="0" Text="Client Secret OAuth :" VerticalAlignment="Center" Margin="0,0,8,0" />
+                                <PasswordBox Grid.Row="1" Grid.Column="1" x:Name="ClientSecretBox" />
+                            </Grid>
+
+                            <TextBlock Text="Upload" FontSize="15" FontWeight="Bold" Margin="0,0,0,6" />
+                            <Grid Margin="0,0,0,12">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="320" />
+                                    <ColumnDefinition Width="120" />
+                                </Grid.ColumnDefinitions>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                </Grid.RowDefinitions>
+                                <TextBlock Grid.Row="0" Grid.Column="0" Text="Taille du batch (1 à 50 fichiers) :" VerticalAlignment="Center" Margin="0,0,8,6" />
+                                <TextBox Grid.Row="0" Grid.Column="1" Text="{Binding BatchSize, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,6" />
+                                <TextBlock Grid.Row="1" Grid.Column="0" Text="Tentatives max en cas d'erreur temporaire :" VerticalAlignment="Center" Margin="0,0,8,6" />
+                                <TextBox Grid.Row="1" Grid.Column="1" Text="{Binding MaxRetries, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,6" />
+                                <TextBlock Grid.Row="2" Grid.Column="0" Text="Uploads simultanés (1 à 3) :" VerticalAlignment="Center" Margin="0,0,8,6" />
+                                <TextBox Grid.Row="2" Grid.Column="1" Text="{Binding Concurrency, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,6" />
+                                <TextBlock Grid.Row="3" Grid.Column="0" Text="Taille max par photo (Mo, limite Google : 200) :" VerticalAlignment="Center" Margin="0,0,8,0" />
+                                <TextBox Grid.Row="3" Grid.Column="1" Text="{Binding MaxFileSizeMb, UpdateSourceTrigger=PropertyChanged}" />
+                            </Grid>
+
+                            <TextBlock Text="Formats inclus" FontSize="15" FontWeight="Bold" Margin="0,0,0,6" />
+                            <TextBlock TextWrapping="Wrap" Margin="0,0,0,4"
+                                       Text="Extensions séparées par des virgules, sans point. Retirez une extension pour exclure un format." />
+                            <TextBox Text="{Binding IncludedExtensions, UpdateSourceTrigger=PropertyChanged}"
+                                     TextWrapping="Wrap" AcceptsReturn="False" Margin="0,0,0,12" />
+
+                            <Button Content="Enregistrer les paramètres" Command="{Binding SaveSettingsCommand}"
+                                    HorizontalAlignment="Left" Margin="0,0,0,16" FontWeight="Bold" />
+
+                            <Separator Margin="0,0,0,10" />
+
+                            <TextBlock Text="Détection des doublons" FontSize="15" FontWeight="Bold" Margin="0,0,0,6" />
+                            <Border Background="#FFF4E5" BorderBrush="DarkOrange" BorderThickness="1"
+                                    CornerRadius="4" Padding="10" Margin="0,0,0,16">
+                                <TextBlock Text="{Binding DuplicateDisclaimerText}" TextWrapping="Wrap" />
+                            </Border>
+
+                            <TextBlock Text="Données locales" FontSize="15" FontWeight="Bold" Margin="0,0,0,6" />
+                            <TextBlock TextWrapping="Wrap" Margin="0,0,0,6"
+                                       Text="L'application ne supprime jamais vos photos locales ni vos médias Google Photos. La suppression ci-dessous ne concerne que l'inventaire, les journaux, les paramètres et les secrets stockés par l'application." />
+                            <Button Content="Supprimer les données locales de l'application"
+                                    Command="{Binding DeleteDataCommand}" HorizontalAlignment="Left"
+                                    Foreground="Firebrick" Margin="0,0,0,10" />
+                        </StackPanel>
+                    </ScrollViewer>
+                </TabItem>
+
+            </TabControl>
+        </Grid>
+    </DockPanel>
+</Window>

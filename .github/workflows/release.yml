@@ -1,0 +1,138 @@
+name: Release
+
+# Déclenchement :
+#   - automatique quand on pousse un tag de version (ex. v1.2.3) ;
+#   - manuel via l'onglet Actions (« Run workflow »), en saisissant la version.
+# Produit une Release GitHub contenant :
+#   - l'installeur Windows (Inno Setup) ;
+#   - un exécutable portable auto-contenu (un seul fichier .exe, aucun .NET requis).
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version à publier (sans le « v », ex. 1.2.3)"
+        required: true
+
+permissions:
+  contents: write  # nécessaire pour créer la Release et y attacher les fichiers
+
+jobs:
+  release:
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: pwsh
+
+    steps:
+      - name: Récupérer les sources
+        uses: actions/checkout@v4
+
+      - name: Installer le SDK .NET 8
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Déterminer la version et le tag
+        id: meta
+        run: |
+          if ($env:GITHUB_REF_TYPE -eq 'tag') {
+            $version = $env:GITHUB_REF_NAME -replace '^v', ''
+            $tag = $env:GITHUB_REF_NAME
+          } else {
+            $version = '${{ github.event.inputs.version }}'
+            $tag = "v$version"
+          }
+          if ([string]::IsNullOrWhiteSpace($version)) { throw "Version introuvable." }
+          if ($version -notmatch '^\d+\.\d+\.\d+') {
+            throw "La version « $version » doit commencer par un numéro X.Y.Z (tag attendu : vX.Y.Z)."
+          }
+          "version=$version" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+          "tag=$tag"         | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+          Write-Host "Version = $version / Tag = $tag"
+
+      - name: Restaurer les dépendances
+        run: dotnet restore GooglePhotosUploader.sln
+
+      - name: Compiler (Release)
+        run: dotnet build GooglePhotosUploader.sln -c Release --no-restore -p:Version=${{ steps.meta.outputs.version }}
+
+      - name: Tests
+        run: dotnet test src/GPhotosUploader.Tests/GPhotosUploader.Tests.csproj -c Release --no-build
+
+      - name: Publier l'application (dossier auto-contenu, pour l'installeur)
+        run: >
+          dotnet publish src/GPhotosUploader.App/GPhotosUploader.App.csproj
+          -c Release -r win-x64 --self-contained true
+          -p:PublishSingleFile=false
+          -p:Version=${{ steps.meta.outputs.version }}
+          -o dist/win-x64
+
+      - name: Publier l'exécutable portable (fichier unique auto-contenu)
+        run: >
+          dotnet publish src/GPhotosUploader.App/GPhotosUploader.App.csproj
+          -c Release -r win-x64 --self-contained true
+          -p:PublishSingleFile=true
+          -p:IncludeNativeLibrariesForSelfExtract=true
+          -p:EnableCompressionInSingleFile=true
+          -p:Version=${{ steps.meta.outputs.version }}
+          -o dist/portable
+
+      - name: Installer Inno Setup
+        run: choco install innosetup --no-progress -y
+
+      - name: Construire l'installeur
+        run: |
+          $iscc = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe"
+          & $iscc "/DMyAppVersion=${{ steps.meta.outputs.version }}" installer\setup.iss
+          if ($LASTEXITCODE -ne 0) { throw "Échec de la construction de l'installeur (ISCC $LASTEXITCODE)." }
+
+      - name: Préparer les fichiers de la Release
+        id: assets
+        run: |
+          $version = '${{ steps.meta.outputs.version }}'
+          New-Item -ItemType Directory -Force -Path release-assets | Out-Null
+
+          $portable = "release-assets/GooglePhotosLocalUploader-$version-portable.exe"
+          Copy-Item "dist/portable/GooglePhotosLocalUploader.exe" $portable
+
+          $setup = Get-ChildItem "dist/installer/GooglePhotosLocalUploader-Setup-*.exe" | Select-Object -First 1
+          if (-not $setup) { throw "Installeur introuvable dans dist/installer." }
+          Copy-Item $setup.FullName "release-assets/"
+
+          # Empreintes SHA-256 pour vérification par l'utilisateur.
+          Get-ChildItem release-assets/*.exe | ForEach-Object {
+            $hash = (Get-FileHash $_.FullName -Algorithm SHA256).Hash
+            "$hash  $($_.Name)" | Out-File -FilePath "release-assets/SHA256SUMS.txt" -Append -Encoding utf8
+          }
+          Get-ChildItem release-assets | Format-Table Name, Length
+
+      - name: Créer / mettre à jour la Release GitHub
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $version = '${{ steps.meta.outputs.version }}'
+          $tag = '${{ steps.meta.outputs.tag }}'
+          $notes = @"
+          ## Google Photos Local Uploader $version
+
+          ### Téléchargements
+          - **Installeur Windows** (`GooglePhotosLocalUploader-Setup-$version.exe`) — installation guidée, sans droits administrateur. Recommandé.
+          - **Version portable** (`GooglePhotosLocalUploader-$version-portable.exe`) — un seul fichier, aucune installation ni .NET requis ; lancez-le directement.
+
+          Vérifiez l'intégrité avec ``SHA256SUMS.txt``.
+
+          Aucun runtime .NET n'est nécessaire (les deux versions sont auto-contenues, Windows 10/11 x64).
+          "@
+
+          if (gh release view $tag 2>$null) {
+            gh release upload $tag (Get-ChildItem release-assets/* | ForEach-Object FullName) --clobber
+          } else {
+            gh release create $tag `
+              --title "Google Photos Local Uploader $version" `
+              --notes $notes `
+              --target $env:GITHUB_SHA `
+              (Get-ChildItem release-assets/* | ForEach-Object FullName)
+          }
