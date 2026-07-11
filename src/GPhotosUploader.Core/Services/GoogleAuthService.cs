@@ -5,6 +5,7 @@ using System.Text;
 using System.Text.Json;
 using GPhotosUploader.Core.Data;
 using GPhotosUploader.Core.Models;
+using GPhotosUploader.Core.Resources;
 
 namespace GPhotosUploader.Core.Services;
 
@@ -72,8 +73,7 @@ public class GoogleAuthService
     public async Task<GoogleAccount> SignInAsync(string clientId, string clientSecret, CancellationToken ct)
     {
         if (string.IsNullOrWhiteSpace(clientId) || string.IsNullOrWhiteSpace(clientSecret))
-            throw new AuthRequiredException(
-                "Client ID et Client Secret OAuth requis. Consultez le guide de configuration Google Cloud.");
+            throw new AuthRequiredException(Loc.T("Auth_ClientCredsRequired"));
 
         var codeVerifier = RandomUrlSafeString(64);
         var codeChallenge = Base64UrlEncode(SHA256.HashData(Encoding.ASCII.GetBytes(codeVerifier)));
@@ -93,7 +93,7 @@ public class GoogleAuthService
             "&access_type=offline" +
             "&prompt=consent";
 
-        _log.Info("Auth", "Ouverture du navigateur pour l'autorisation Google...");
+        _log.Info("Auth", Loc.T("Log_Auth_OpeningBrowser"));
         Process.Start(new ProcessStartInfo(authUrl) { UseShellExecute = true });
 
         using var timeout = CancellationTokenSource.CreateLinkedTokenSource(ct);
@@ -106,7 +106,7 @@ public class GoogleAuthService
         }
         catch (OperationCanceledException) when (!ct.IsCancellationRequested)
         {
-            throw new AuthRequiredException("Délai d'autorisation dépassé (5 minutes). Réessayez.");
+            throw new AuthRequiredException(Loc.T("Auth_Timeout"));
         }
         finally
         {
@@ -126,13 +126,13 @@ public class GoogleAuthService
         using var response = await _http.PostAsync(TokenEndpoint, new FormUrlEncodedContent(form), ct);
         var body = await response.Content.ReadAsStringAsync(ct);
         if (!response.IsSuccessStatusCode)
-            throw new AuthRequiredException($"Échange du code OAuth refusé par Google ({(int)response.StatusCode}).");
+            throw new AuthRequiredException(Loc.TF("Auth_ExchangeRefused", (int)response.StatusCode));
 
         using var json = JsonDocument.Parse(body);
         var root = json.RootElement;
         var refreshToken = root.TryGetProperty("refresh_token", out var rt) ? rt.GetString() : null;
         if (string.IsNullOrEmpty(refreshToken))
-            throw new AuthRequiredException("Google n'a pas fourni de refresh token. Réessayez la connexion.");
+            throw new AuthRequiredException(Loc.T("Auth_NoRefreshToken"));
 
         // Consentement granulaire : vérifier que les scopes indispensables ont bien été accordés.
         var grantedScopes = root.TryGetProperty("scope", out var scopeProp) ? scopeProp.GetString() ?? "" : "";
@@ -140,9 +140,7 @@ public class GoogleAuthService
         if (grantedScopes.Length > 0 && missing.Count > 0)
         {
             await TryRevokeAsync(refreshToken);
-            throw new AuthRequiredException(
-                "L'accès à Google Photos n'a pas été accordé. Sur l'écran de consentement Google, " +
-                "cochez toutes les autorisations demandées puis réessayez la connexion.");
+            throw new AuthRequiredException(Loc.T("Auth_ScopesNotGranted"));
         }
 
         var accessToken = root.GetProperty("access_token").GetString()!;
@@ -164,7 +162,7 @@ public class GoogleAuthService
             Scopes = grantedScopes.Length > 0 ? grantedScopes : string.Join(' ', Scopes)
         };
         _accounts.Save(account);
-        _log.Info("Auth", $"Compte Google connecté : {email ?? "(email non communiqué)"}");
+        _log.Info("Auth", Loc.TF("Log_Auth_Connected", email ?? Loc.T("Auth_EmailNotProvided")));
         return account;
     }
 
@@ -191,8 +189,7 @@ public class GoogleAuthService
                 // Port occupé : essayer le suivant.
             }
         }
-        throw new AuthRequiredException(
-            "Impossible d'ouvrir un port local pour recevoir la réponse Google. Réessayez.");
+        throw new AuthRequiredException(Loc.T("Auth_NoFreePort"));
     }
 
     /// <summary>
@@ -219,18 +216,23 @@ public class GoogleAuthService
             }
 
             var (statusCode, html) = error is null
-                ? (200, "<html><body style='font-family:sans-serif'><h2>Connexion réussie</h2><p>Vous pouvez fermer cette fenêtre et revenir dans Google Photos Local Uploader.</p></body></html>")
-                : (400, "<html><body style='font-family:sans-serif'><h2>Échec de la connexion</h2><p>Retournez dans l'application et réessayez.</p></body></html>");
+                ? (200, ResultPage(Loc.T("Auth_Html_SuccessTitle"), Loc.T("Auth_Html_SuccessBody")))
+                : (400, ResultPage(Loc.T("Auth_Html_FailureTitle"), Loc.T("Auth_Html_FailureBody")));
 
             // L'écriture de la page de confirmation est best-effort : un navigateur qui
             // coupe la connexion ne doit pas faire échouer une autorisation déjà reçue.
             await TryWriteResponseAsync(context, statusCode, html, ct);
 
             if (error is not null)
-                throw new AuthRequiredException($"Autorisation refusée : {error}");
+                throw new AuthRequiredException(Loc.TF("Auth_AuthorizationDenied", error));
             return code!;
         }
     }
+
+    /// <summary>Petite page HTML de confirmation affichée dans le navigateur après l'autorisation.</summary>
+    private static string ResultPage(string title, string body) =>
+        $"<html><head><meta charset='utf-8'></head><body style='font-family:sans-serif'>" +
+        $"<h2>{WebUtility.HtmlEncode(title)}</h2><p>{WebUtility.HtmlEncode(body)}</p></body></html>";
 
     private async Task TryWriteResponseAsync(HttpListenerContext context, int statusCode, string html,
         CancellationToken ct)
@@ -246,7 +248,7 @@ public class GoogleAuthService
         }
         catch (Exception ex) when (ex is HttpListenerException or IOException or ObjectDisposedException or InvalidOperationException)
         {
-            _log.Warning("Auth", "La page de confirmation n'a pas pu être affichée dans le navigateur (sans conséquence).");
+            _log.Warning("Auth", Loc.T("Log_Auth_ConfirmPageFailed"));
         }
     }
 
@@ -271,11 +273,9 @@ public class GoogleAuthService
                 return cached.Value;
 
             var refreshToken = CredentialStore.Read(CredentialStore.RefreshTokenTarget)
-                ?? throw new AuthRequiredException("Aucun compte Google connecté.");
+                ?? throw new AuthRequiredException(Loc.T("Auth_NoAccount"));
             var clientSecret = CredentialStore.ReadClientSecret(clientId)
-                ?? throw new AuthRequiredException(
-                    "Client secret OAuth introuvable pour ce Client ID (il a peut-être été modifié). " +
-                    "Reconnectez votre compte.");
+                ?? throw new AuthRequiredException(Loc.T("Auth_ClientSecretNotFound"));
 
             var form = new Dictionary<string, string>
             {
@@ -288,14 +288,13 @@ public class GoogleAuthService
             var body = await response.Content.ReadAsStringAsync(ct);
             if (!response.IsSuccessStatusCode)
             {
-                _log.Warning("Auth", $"Rafraîchissement du token refusé ({(int)response.StatusCode}).");
+                _log.Warning("Auth", Loc.TF("Log_Auth_RefreshRefused", (int)response.StatusCode));
                 if ((int)response.StatusCode is 400 or 401)
                 {
                     Volatile.Write(ref _cached, null);
-                    throw new AuthRequiredException(
-                        "La session Google a expiré ou a été révoquée. Reconnectez votre compte.");
+                    throw new AuthRequiredException(Loc.T("Auth_SessionExpired"));
                 }
-                throw new HttpRequestException($"Rafraîchissement du token impossible ({(int)response.StatusCode}).");
+                throw new HttpRequestException(Loc.TF("Auth_RefreshFailed", (int)response.StatusCode));
             }
 
             using var json = JsonDocument.Parse(body);
@@ -329,7 +328,7 @@ public class GoogleAuthService
         CredentialStore.Delete(CredentialStore.RefreshTokenTarget);
         Volatile.Write(ref _cached, null);
         _accounts.Delete();
-        _log.Info("Auth", "Compte Google déconnecté (refresh token révoqué et supprimé).");
+        _log.Info("Auth", Loc.T("Log_Auth_Disconnected"));
     }
 
     /// <summary>Révocation best-effort avec timeout court : ne doit jamais bloquer ni faire échouer l'appelant.</summary>
@@ -343,7 +342,7 @@ public class GoogleAuthService
         }
         catch (Exception ex) when (ex is HttpRequestException or OperationCanceledException)
         {
-            _log.Warning("Auth", "Révocation distante du token impossible (hors-ligne ?) — le token local sera effacé quand même.");
+            _log.Warning("Auth", Loc.T("Log_Auth_RevokeFailed"));
         }
     }
 

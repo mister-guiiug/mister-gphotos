@@ -1,120 +1,141 @@
 # Architecture — Google Photos Local Uploader
 
-> Document technique destiné aux développeurs. Il décrit l'architecture réelle du code
-> présent dans ce dépôt ; chaque comportement décrit ici a été vérifié dans les sources.
+> Technical document for developers. It describes the actual architecture of the code
+> present in this repository; every behavior described here has been verified against the sources.
 
-## 1. Vue d'ensemble
+## 1. Overview
 
-Google Photos Local Uploader est une application de bureau Windows 10/11 (WPF, .NET 8, C#)
-qui :
+Google Photos Local Uploader is a Windows 10/11 desktop application (WPF, .NET 8, C#)
+that:
 
-1. **scanne** récursivement un dossier local d'images,
-2. **indexe** chaque fichier dans une base SQLite locale (chemin, taille, dates, hash SHA-256),
-3. **uploade** les fichiers par batchs vers Google Photos via l'API HTTP officielle
-   (Library API), avec **reprise après interruption** : chaque transition d'état est
-   persistée en base, si bien qu'une fermeture, un crash ou une coupure réseau ne fait
-   jamais perdre le travail accompli.
+1. **scans** a local image folder recursively,
+2. **indexes** each file in a local SQLite database (path, size, dates, SHA-256 hash),
+3. **uploads** files in batches to Google Photos via the official HTTP API
+   (Library API), with **resume after interruption**: every state transition is
+   persisted to the database, so that a shutdown, a crash or a network outage never
+   loses the work already done.
 
-Principes non négociables, appliqués dans le code :
+Non-negotiable principles, enforced in the code:
 
-- L'application **ne supprime jamais** un fichier local ni un média Google Photos.
-- Les secrets (refresh token OAuth, client secret) sont stockés dans le
-  **Gestionnaire d'identifiants Windows** (`advapi32` / `CredWriteW`), jamais en clair sur le disque.
-- Aucune capacité API n'est supposée au-delà de ce que Google documente : depuis les
-  changements du **31 mars 2025**, la Google Photos Library API ne permet de relire que
-  les médias créés par l'application elle-même. L'interface affiche donc franchement :
-  « Google Photos ne permet pas à cette application de vérifier toute votre bibliothèque.
-  La détection des doublons est garantie uniquement pour les fichiers déjà indexés
-  localement ou uploadés par cette application. »
-  (constante `MainViewModel.DuplicateDisclaimer`).
+- The application **never deletes** a local file or a Google Photos media item.
+- Secrets (OAuth refresh token, client secret) are stored in the
+  **Windows Credential Manager** (`advapi32` / `CredWriteW`), never in cleartext on disk.
+- No API capability is assumed beyond what Google documents: since the
+  **March 31, 2025** changes, the Google Photos Library API only allows reading back
+  media created by the application itself. The interface therefore states plainly:
+  "Google Photos does not allow this application to check your entire library.
+  Duplicate detection is guaranteed only for files already indexed locally or uploaded
+  by this application."
+  This disclaimer text now lives in the localization resources (`Strings.resx` /
+  `Strings.fr.resx`, key `"Disclaimer_Duplicates"`).
 
-## 2. Choix de la pile : WPF + .NET 8
+## 2. Stack choice: WPF + .NET 8
 
-Le besoin est une application **Windows uniquement**, durable, avec accès natif à des
-API Windows (Gestionnaire d'identifiants via P/Invoke `advapi32`), un traitement de
-fichiers intensif (hash SHA-256, streaming HTTP de gros fichiers) et une interface
-riche mais classique (onglets, tableaux, barres de progression).
+The requirement is a **Windows-only** application, durable, with native access to
+Windows APIs (Credential Manager via P/Invoke `advapi32`), intensive file processing
+(SHA-256 hashing, HTTP streaming of large files) and a rich but classic interface
+(tabs, tables, progress bars).
 
-| Critère | **WPF / .NET 8 (choisi)** | .NET MAUI | Avalonia | Electron |
+| Criterion | **WPF / .NET 8 (chosen)** | .NET MAUI | Avalonia | Electron |
 |---|---|---|---|---|
-| Cible | Windows desktop, mature depuis 2006 | Mobile d'abord ; le desktop Windows passe par WinUI 3, écosystème encore jeune | Multiplateforme, mais apporte une couche d'abstraction inutile pour du Windows-only | Multiplateforme via Chromium |
-| Accès natif Windows (Credential Manager, `HttpListener` loopback) | Direct (P/Invoke trivial, même runtime) | Possible mais à travers des abstractions par plateforme | Possible mais hors du cœur du framework | Nécessite des modules natifs Node ou des ponts |
-| Empreinte | Exécutable self-contained raisonnable, un seul processus .NET | Comparable, mais dépendances Windows App SDK | Comparable | Un Chromium complet embarqué (~200 Mo, plusieurs processus, RAM élevée) |
-| Performance I/O + hash + upload en tâche de fond | Excellente : `Task`, `async/await`, streams .NET natifs | Équivalente (même runtime) mais sans bénéfice ici | Équivalente | JavaScript/Node : correct mais moins adapté au streaming binaire contrôlé |
-| Outillage / tests | `dotnet build`, `dotnet test`, xUnit, MVVM éprouvé (CommunityToolkit.Mvvm) | En cours de stabilisation | Bon mais plus petit écosystème | Écosystème web, mais tests desktop plus lourds |
-| Longévité | Composant supporté de .NET 8 (LTS) | Cadence de changements élevée | Projet open source dynamique mais externe à Microsoft | Dépend du rythme Chromium |
+| Target | Windows desktop, mature since 2006 | Mobile-first; Windows desktop goes through WinUI 3, still-young ecosystem | Cross-platform, but adds an abstraction layer that is useless for Windows-only | Cross-platform via Chromium |
+| Native Windows access (Credential Manager, `HttpListener` loopback) | Direct (trivial P/Invoke, same runtime) | Possible but through per-platform abstractions | Possible but outside the framework core | Requires native Node modules or bridges |
+| Footprint | Reasonable self-contained executable, a single .NET process | Comparable, but with Windows App SDK dependencies | Comparable | A full Chromium embedded (~200 MB, several processes, high RAM) |
+| I/O + hash + background upload performance | Excellent: `Task`, `async/await`, native .NET streams | Equivalent (same runtime) but no benefit here | Equivalent | JavaScript/Node: fine but less suited to controlled binary streaming |
+| Tooling / tests | `dotnet build`, `dotnet test`, xUnit, proven MVVM (CommunityToolkit.Mvvm) | Still stabilizing | Good but smaller ecosystem | Web ecosystem, but heavier desktop tests |
+| Longevity | Supported component of .NET 8 (LTS) | High rate of change | Dynamic open-source project but external to Microsoft | Depends on the Chromium cadence |
 
-Conclusion : pour une application **exclusivement Windows**, sans besoin web ni mobile,
-WPF sur .NET 8 est le choix le plus simple, le plus stable et le plus performant.
-MAUI et Avalonia paieraient un coût d'abstraction multiplateforme sans bénéfice ;
-Electron paierait en plus un coût mémoire/poids injustifiable pour un uploader de fichiers.
+Conclusion: for an **exclusively Windows** application, with no web or mobile need,
+WPF on .NET 8 is the simplest, most stable and most performant choice.
+MAUI and Avalonia would pay a cross-platform abstraction cost with no benefit;
+Electron would additionally pay a memory/size cost that is unjustifiable for a file uploader.
 
-Autre choix structurant : **pas de SDK Google**. Le client .NET officiel PhotosLibrary
-est déprécié ; l'application parle donc **HTTP directement** (deux endpoints seulement,
-voir §6), ce qui supprime une dépendance morte et rend le comportement réseau
-entièrement auditable dans `GooglePhotosApi.cs`.
+Another structuring choice: **no Google SDK**. The official PhotosLibrary .NET client
+is deprecated; the application therefore speaks **HTTP directly** (only two endpoints,
+see §6), which removes a dead dependency and makes the network behavior
+fully auditable in `GooglePhotosApi.cs`.
 
-## 3. Découpage de la solution
+## 3. Solution breakdown
 
 ```
 GooglePhotosUploader.sln
-├── src/GPhotosUploader.Core/     Logique métier pure (aucune dépendance WPF)
+├── src/GPhotosUploader.Core/     Pure business logic (no WPF dependency)
 │   ├── Models/                   Enums, MediaFile, AppSettings, GoogleAccount, UploadBatch
 │   ├── Data/                     Database, Migrations, *Repository (SQLite)
-│   └── Services/                 Scan, auth, API, upload, journalisation…
-├── src/GPhotosUploader.App/      Couche présentation WPF (MVVM)
-│   ├── App.xaml(.cs)             Racine de composition (instanciation des services)
-│   ├── MainWindow.xaml(.cs)      Fenêtre principale + fermeture propre
-│   ├── Views/OAuthWizardWindow   Assistant Google Cloud (6 étapes, liens console, import JSON)
+│   ├── Resources/                Strings.resx (English), Strings.fr.resx (French), Loc helper
+│   └── Services/                 Scan, auth, API, upload, logging…
+├── src/GPhotosUploader.App/      WPF presentation layer (MVVM)
+│   ├── App.xaml(.cs)             Composition root (service instantiation)
+│   ├── MainWindow.xaml(.cs)      Main window + clean shutdown
+│   ├── Localization/LocExtension XAML markup extension {l:Loc Key}
+│   ├── Views/OAuthWizardWindow   Google Cloud wizard (6 steps, console links, JSON import)
 │   └── ViewModels/               MainViewModel, OAuthWizardViewModel
-├── src/GPhotosUploader.Tests/    xUnit : CoreLogic, Database, FileScanner, OAuthClientConfig (54 tests)
+├── src/GPhotosUploader.Tests/    xUnit: CoreLogic, Database, FileScanner, OAuthClientConfig (59 tests)
 ├── build/build.ps1, build/publish.ps1
-├── scripts/setup-google-cloud.ps1  (Optionnel) gcloud : projet + activation API (le client OAuth
-│                                   « Application de bureau » n'est automatisable par aucune API)
-└── installer/setup.iss           Installeur Inno Setup
+├── scripts/setup-google-cloud.ps1  (Optional) gcloud: project + API enablement (the "Desktop app"
+│                                   OAuth client cannot be automated by any API)
+└── installer/setup.iss           Inno Setup installer
 ```
 
-- **`GPhotosUploader.Core`** ne référence ni WPF ni quoi que ce soit d'UI : il est
-  testable en console et par xUnit. Tout ce qui touche à SQLite, au réseau, à OAuth et
-  à la machine à états d'upload vit ici.
-- **`GPhotosUploader.App`** ne contient aucune logique métier : `App.xaml.cs` est la
-  *racine de composition* (elle construit `Database`, les dépôts, `HttpClient`,
-  `GoogleAuthService`, `GooglePhotosApi`, `FileScanner`, `UploadService`, puis injecte
-  tout dans `MainViewModel`). L'injection est manuelle, sans conteneur DI : le graphe
-  d'objets est petit et entièrement visible dans `OnStartup`.
-- **`GPhotosUploader.Tests`** couvre la logique Core (backoff, compatibilité, pause,
-  migrations, dépôts, scanner) — 54 tests, tous verts.
+- **`GPhotosUploader.Core`** references neither WPF nor anything UI-related: it is
+  testable from a console and by xUnit. Everything touching SQLite, the network, OAuth
+  and the upload state machine lives here.
+- **`GPhotosUploader.App`** contains no business logic: `App.xaml.cs` is the
+  *composition root* (it builds `Database`, the repositories, `HttpClient`,
+  `GoogleAuthService`, `GooglePhotosApi`, `FileScanner`, `UploadService`, then injects
+  everything into `MainViewModel`). Injection is manual, with no DI container: the object
+  graph is small and entirely visible in `OnStartup`.
+- **`GPhotosUploader.Tests`** covers the Core logic (backoff, compatibility, pause,
+  migrations, repositories, scanner) — 59 tests, all green.
 
-## 4. Responsabilité de chaque service (`src/GPhotosUploader.Core/Services/`)
+### Internationalization (i18n)
 
-| Fichier | Responsabilité |
+The application is internationalized. All user-facing strings come from resource files
+rather than being hard-coded:
+
+- **Resource files** live at `src/GPhotosUploader.Core/Resources/Strings.resx`
+  (English, the default/fallback culture) and `Strings.fr.resx` (French). Each
+  additional `Strings.<culture>.resx` compiles into a satellite assembly.
+- **`GPhotosUploader.Core.Resources.Loc`** is a static helper (`T`/`TF`) backed by a
+  `ResourceManager`. `T` returns a localized string by key; `TF` formats it with arguments.
+- **`GPhotosUploader.App.Localization.LocExtension`** is a WPF markup extension used in
+  XAML as `{l:Loc Key}` to bind a control to a resource key.
+- The **UI culture is taken from the OS at startup**: `App.OnStartup` sets
+  `Loc.Culture = CultureInfo.CurrentUICulture` and
+  `CultureInfo.DefaultThreadCurrentUICulture`.
+- **Adding a language** only requires adding a `Strings.<culture>.resx` file (which
+  produces a satellite assembly); no code change is needed.
+
+## 4. Responsibility of each service (`src/GPhotosUploader.Core/Services/`)
+
+| File | Responsibility |
 |---|---|
-| `AppPaths.cs` | Emplacements des données locales : `%APPDATA%\GooglePhotosLocalUploader\` (`app.db`, `logs\app-YYYYMMDD.log`). |
-| `Logger.cs` | Journalisation triple : fichier texte quotidien, table SQLite `app_logs` (hors niveau Debug), et événement `MessageLogged` pour l'affichage temps réel dans l'UI. Ne doit jamais recevoir de donnée sensible (token, secret). Un échec d'écriture du journal ne fait jamais tomber l'application. |
-| `CredentialStore.cs` | Lecture/écriture/suppression des secrets dans le Gestionnaire d'identifiants Windows via P/Invoke `advapi32` (`CredWriteW`, `CredReadW`, `CredDeleteW`). Cibles exactes : `GooglePhotosLocalUploader/RefreshToken` et `GooglePhotosLocalUploader/OAuthClientSecret`. |
-| `CompatibilityChecker.cs` | Vérifie qu'un fichier est acceptable : extension présente dans `AppSettings.IncludedExtensions` (liste configurable, défaut : jpg, jpeg, png, webp, heic, heif, gif, tif, tiff, bmp, avif, ico + RAW dng, cr2, cr3, crw, nef, nrw, arw, orf, raf, rw2, srw, pef, srf, sr2), non vide, taille ≤ 200 Mo (limite photo Google Photos). Fournit aussi le type MIME transmis à l'endpoint d'upload (`MimeTypeFor`). |
-| `FileScanner.cs` | Scan récursif du dossier racine (`EnumerationOptions` : sous-dossiers, ignore les inaccessibles, saute reparse points et fichiers système). Pour chaque image : si taille + date de modification inchangées et hash déjà connu → simple mise à jour de `last_seen_at` (pas de re-hash) ; sinon calcul SHA-256, détection de doublons par hash (déjà uploadé → `skipped_duplicate_remote_app_created` ; doublon local → `skipped_duplicate_local`), passage en `queued`. Un contenu modifié remet le fichier à zéro (statut, token, compteur d'essais). Ne rétrograde jamais un fichier `uploaded`. En fin de scan, les fichiers sous la racine non revus passent en `scan_status = 'missing'`. |
-| `PauseTokenSource.cs` | Jeton de pause coopératif : l'orchestrateur appelle `WaitWhilePausedAsync` entre chaque étape et se fige tant que la pause est active ; `Resume` libère toutes les attentes. |
-| `GoogleAuthService.cs` | OAuth 2.0 **Authorization Code + PKCE** pour application installée : ouverture du navigateur par défaut, `HttpListener` sur `http://127.0.0.1:{port}/` (port libre choisi dynamiquement), vérification du `state`, échange du code, timeout de 5 minutes. Scopes exacts : `photoslibrary.appendonly`, `photoslibrary.readonly.appcreateddata`, `openid`, `email`. Cache l'access token en mémoire (expiration moins 60 s de marge), le rafraîchit sous verrou (`SemaphoreSlim`) pour éviter les rafraîchissements concurrents, lève `AuthRequiredException` si le refresh token est refusé (400/401) — signe que la session Google est expirée ou révoquée. `SignOutAsync` révoque le token au mieux (tolère le hors-ligne) puis efface les secrets locaux. |
-| `GooglePhotosApi.cs` | Client HTTP minimal de la Library API, **deux endpoints seulement** : `POST https://photoslibrary.googleapis.com/v1/uploads` (octets bruts, en-têtes `X-Goog-Upload-Protocol: raw` et `X-Goog-Upload-Content-Type`, streaming avec progression via `ProgressReadStream`) → upload token ; `POST https://photoslibrary.googleapis.com/v1/mediaItems:batchCreate` (max 50 éléments, `AppSettings.MaxBatchSize`). Classe chaque erreur HTTP en transitoire/permanente et extrait `Retry-After` (voir §8). |
-| `Backoff.cs` | Backoff exponentiel : base 1 s, doublement par tentative, **plafond 60 s**, jitter aléatoire 0–500 ms ; un `Retry-After` fourni par Google est honoré en priorité (borné au plafond). |
-| `UploadService.cs` | Orchestrateur d'upload (détaillé en §6 et §7) : consomme la file `queued` par batchs (défaut 20 fichiers), obtient les upload tokens avec concurrence limitée (`SemaphoreSlim`, 1–3, défaut 2), appelle `batchCreate`, persiste **chaque** transition d'état dans SQLite, gère pause/reprise/arrêt, débit sur fenêtre glissante de 30 s et estimation du temps restant. |
+| `AppPaths.cs` | Local data locations: `%APPDATA%\GooglePhotosLocalUploader\` (`app.db`, `logs\app-YYYYMMDD.log`). |
+| `Logger.cs` | Triple logging: a daily text file, the SQLite table `app_logs` (excluding the Debug level), and the `MessageLogged` event for real-time display in the UI. Must never receive sensitive data (token, secret). A log write failure never brings the application down. |
+| `CredentialStore.cs` | Read/write/delete of secrets in the Windows Credential Manager via P/Invoke `advapi32` (`CredWriteW`, `CredReadW`, `CredDeleteW`). Exact targets: `GooglePhotosLocalUploader/RefreshToken` and `GooglePhotosLocalUploader/OAuthClientSecret`. |
+| `CompatibilityChecker.cs` | Checks that a file is acceptable: extension present in `AppSettings.IncludedExtensions` (configurable list, default: jpg, jpeg, png, webp, heic, heif, gif, tif, tiff, bmp, avif, ico + RAW dng, cr2, cr3, crw, nef, nrw, arw, orf, raf, rw2, srw, pef, srf, sr2), non-empty, size ≤ 200 MB (Google Photos photo limit). Also provides the MIME type sent to the upload endpoint (`MimeTypeFor`). |
+| `FileScanner.cs` | Recursive scan of the root folder (`EnumerationOptions`: subfolders, ignores inaccessible items, skips reparse points and system files). For each image: if size + modification date are unchanged and the hash is already known → simple update of `last_seen_at` (no re-hash); otherwise SHA-256 computation, duplicate detection by hash (already uploaded → `skipped_duplicate_remote_app_created`; local duplicate → `skipped_duplicate_local`), transition to `queued`. Modified content resets the file (status, token, attempt counter). Never downgrades an `uploaded` file. At the end of the scan, files under the root that were not seen again move to `scan_status = 'missing'`. |
+| `PauseTokenSource.cs` | Cooperative pause token: the orchestrator calls `WaitWhilePausedAsync` between each step and freezes while the pause is active; `Resume` releases all waits. |
+| `GoogleAuthService.cs` | OAuth 2.0 **Authorization Code + PKCE** for an installed application: opens the default browser, `HttpListener` on `http://127.0.0.1:{port}/` (a free port chosen dynamically), verifies the `state`, exchanges the code, 5-minute timeout. Exact scopes: `photoslibrary.appendonly`, `photoslibrary.readonly.appcreateddata`, `openid`, `email`. Caches the access token in memory (expiration minus a 60 s margin), refreshes it under a lock (`SemaphoreSlim`) to avoid concurrent refreshes, throws `AuthRequiredException` if the refresh token is rejected (400/401) — a sign that the Google session has expired or been revoked. `SignOutAsync` revokes the token on a best-effort basis (tolerates being offline) then clears the local secrets. |
+| `GooglePhotosApi.cs` | Minimal HTTP client for the Library API, **only two endpoints**: `POST https://photoslibrary.googleapis.com/v1/uploads` (raw bytes, headers `X-Goog-Upload-Protocol: raw` and `X-Goog-Upload-Content-Type`, streaming with progress via `ProgressReadStream`) → upload token; `POST https://photoslibrary.googleapis.com/v1/mediaItems:batchCreate` (max 50 items, `AppSettings.MaxBatchSize`). Classifies each HTTP error as transient/permanent and extracts `Retry-After` (see §8). |
+| `Backoff.cs` | Exponential backoff: 1 s base, doubling per attempt, **60 s cap**, random jitter 0–500 ms; a `Retry-After` provided by Google is honored first (capped at the ceiling). |
+| `UploadService.cs` | Upload orchestrator (detailed in §6 and §7): consumes the `queued` queue in batches (default 20 files), obtains upload tokens with limited concurrency (`SemaphoreSlim`, 1–3, default 2), calls `batchCreate`, persists **every** state transition to SQLite, handles pause/resume/stop, throughput over a 30 s sliding window, and estimation of the remaining time. |
 
-Côté données (`src/GPhotosUploader.Core/Data/`) : `Database.cs` ouvre SQLite en mode
-**WAL** avec `busy_timeout=5000` et `foreign_keys=ON` (résistance aux arrêts brutaux et
-aux accès concurrents scan + upload + UI) ; `Migrations.cs` applique des scripts
-versionnés en transaction (table `schema_version`) ; les dépôts (`MediaFileRepository`,
-`SettingsRepository`, `AccountRepository`, `BatchRepository`, `LogRepository`) sont les
-seuls points d'accès SQL, tous paramétrés.
+On the data side (`src/GPhotosUploader.Core/Data/`): `Database.cs` opens SQLite in
+**WAL** mode with `busy_timeout=5000` and `foreign_keys=ON` (resilience to abrupt
+shutdowns and to concurrent scan + upload + UI access); `Migrations.cs` applies
+versioned scripts within a transaction (table `schema_version`); the repositories
+(`MediaFileRepository`, `SettingsRepository`, `AccountRepository`, `BatchRepository`,
+`LogRepository`) are the only SQL access points, all parameterized.
 
-## 5. Diagramme des composants
+## 5. Component diagram
 
 ```mermaid
 flowchart TB
     subgraph App["GPhotosUploader.App (WPF)"]
         MW["MainWindow.xaml(.cs)"]
         VM["MainViewModel<br/>(CommunityToolkit.Mvvm)"]
-        AX["App.xaml.cs<br/>racine de composition"]
+        AX["App.xaml.cs<br/>composition root"]
     end
 
     subgraph Core["GPhotosUploader.Core"]
@@ -139,16 +160,16 @@ flowchart TB
         end
     end
 
-    subgraph Externe
+    subgraph External
         SQLITE[("%APPDATA%\GooglePhotosLocalUploader\app.db")]
-        WCM["Gestionnaire d'identifiants Windows"]
+        WCM["Windows Credential Manager"]
         GOOGLE["Google Photos Library API<br/>/v1/uploads + /v1/mediaItems:batchCreate"]
         OAUTH["Google OAuth 2.0<br/>accounts.google.com + oauth2.googleapis.com"]
-        FILES["Dossier photos local"]
+        FILES["Local photo folder"]
     end
 
     MW --> VM
-    AX -->|instancie et injecte| VM
+    AX -->|instantiates and injects| VM
     VM --> FS
     VM --> US
     VM --> GA
@@ -172,15 +193,15 @@ flowchart TB
     LG --> LR
 ```
 
-## 6. Séquence d'un upload
+## 6. Upload sequence
 
-Le flux pour un batch (défaut : 20 fichiers, 2 uploads d'octets simultanés) :
+The flow for a batch (default: 20 files, 2 concurrent byte uploads):
 
-1. **Phase 1 — octets** : pour chaque fichier, `POST /v1/uploads` avec les octets bruts
-   → **upload token** (valide ~24 h côté Google ; l'application le considère frais
-   pendant **20 h**, constante `UploadTokenLifetime`).
-2. **Phase 2 — création** : un seul `POST /v1/mediaItems:batchCreate` avec tous les
-   tokens du batch (limite dure : 50 éléments par appel).
+1. **Phase 1 — bytes**: for each file, `POST /v1/uploads` with the raw bytes
+   → **upload token** (valid ~24 h on Google's side; the application considers it fresh
+   for **20 h**, constant `UploadTokenLifetime`).
+2. **Phase 2 — creation**: a single `POST /v1/mediaItems:batchCreate` with all the
+   batch's tokens (hard limit: 50 items per call).
 
 ```mermaid
 sequenceDiagram
@@ -193,180 +214,179 @@ sequenceDiagram
 
     UI->>US: Start(settings)
     US->>DB: RequeueInterrupted() + RequeuePaused()
-    loop tant qu'il reste des fichiers éligibles
+    loop while eligible files remain
         US->>DB: GetNextForUpload(batchSize×10, maxRetries)
-        Note over US: batch de 20 fichiers max,<br/>déduplication attemptedThisRun
+        Note over US: batch of 20 files max,<br/>deduplication attemptedThisRun
         US->>DB: CreateBatch(n) → batchId
 
-        par concurrence limitée (SemaphoreSlim, défaut 2)
+        par limited concurrency (SemaphoreSlim, default 2)
             US->>DB: StartAttempt(fileId, batchId)
-            US->>US: File.Exists ? CompatibilityChecker.Check ?<br/>doublon par hash ? token encore frais (<20 h) ?
+            US->>US: File.Exists ? CompatibilityChecker.Check ?<br/>duplicate by hash ? token still fresh (<20 h) ?
             US->>DB: upload_status = 'uploading'
             US->>GA: GetAccessTokenAsync(clientId)
-            GA-->>US: access token (cache ou refresh_token)
-            US->>GP: UploadBytesAsync(token, chemin, mime, progress)
+            GA-->>US: access token (cache or refresh_token)
+            US->>GP: UploadBytesAsync(token, path, mime, progress)
             GP->>G: POST /v1/uploads (X-Goog-Upload-Protocol: raw)
             G-->>GP: upload token (~24 h)
             GP-->>US: upload token
-            US->>DB: upload_token + upload_token_at persistés
+            US->>DB: upload_token + upload_token_at persisted
             US->>DB: FinishAttempt("bytes_uploaded")
         end
 
         US->>GA: GetAccessTokenAsync(clientId)
-        US->>GP: BatchCreateAsync(tokens des fichiers prêts)
-        GP->>G: POST /v1/mediaItems:batchCreate (≤ 50 éléments)
-        G-->>GP: newMediaItemResults (succès/échec par élément)
+        US->>GP: BatchCreateAsync(tokens of ready files)
+        GP->>G: POST /v1/mediaItems:batchCreate (≤ 50 items)
+        G-->>GP: newMediaItemResults (success/failure per item)
         GP-->>US: List<BatchCreateItemResult>
-        US->>DB: succès → 'uploaded' + google_media_item_id, token effacé<br/>échec → token jeté, 'failed', retry_count+1
+        US->>DB: success → 'uploaded' + google_media_item_id, token cleared<br/>failure → token discarded, 'failed', retry_count+1
         US->>DB: CompleteBatch(batchId, uploaded, failed, "completed")
-        US-->>UI: CountersChanged / FileProgressChanged (événements)
+        US-->>UI: CountersChanged / FileProgressChanged (events)
     end
-    US-->>UI: RunCompleted("Upload terminé : X uploadé(s), ...")
+    US-->>UI: RunCompleted("Upload finished: X uploaded, ...")
 ```
 
-Avant chaque upload d'octets, `PrepareUploadTokenAsync` revérifie dans l'ordre :
-existence du fichier sur disque, compatibilité avec les paramètres **courants**,
-doublon d'un fichier déjà uploadé (par hash), et présence d'un upload token encore
-frais — auquel cas les octets ne sont **pas renvoyés** (résultat d'attempt
-`token_reused` dans `upload_attempts`).
+Before each byte upload, `PrepareUploadTokenAsync` re-checks, in order:
+the file's existence on disk, compatibility with the **current** settings,
+duplication against an already-uploaded file (by hash), and the presence of an upload
+token that is still fresh — in which case the bytes are **not resent** (attempt result
+`token_reused` in `upload_attempts`).
 
-## 7. Stratégie de reprise après interruption
+## 7. Resume-after-interruption strategy
 
-La règle générale : **SQLite est la source de vérité**. Chaque fichier porte un
+The general rule: **SQLite is the source of truth**. Each file carries an
 `upload_status` (`discovered`, `queued`, `uploading`, `uploaded`,
 `skipped_duplicate_local`, `skipped_duplicate_remote_app_created`,
-`skipped_incompatible`, `failed`, `paused`) et un `scan_status` (`scanned`, `missing`),
-mis à jour à chaque étape. La base est en mode WAL, donc cohérente même après un arrêt
-brutal.
+`skipped_incompatible`, `failed`, `paused`) and a `scan_status` (`scanned`, `missing`),
+updated at each step. The database is in WAL mode, hence consistent even after an
+abrupt shutdown.
 
-| Cas | Comportement vérifié dans le code |
+| Case | Behavior verified in the code |
 |---|---|
-| **Fermeture de la fenêtre** | `MainWindow.OnClosing` annule la fermeture, appelle `MainViewModel.ShutdownAsync()` (annulation du scan, `UploadService.StopAsync()`), puis ferme réellement. L'annulation fait passer les fichiers `uploading` en **`paused`** (`MarkUploadingAsPaused`). Au prochain lancement de l'upload, `RequeuePaused()` les remet en `queued`. |
-| **Crash / coupure de courant** | Aucun code ne s'exécute, mais les statuts déjà persistés survivent (WAL). Au démarrage suivant, `App.OnStartup` appelle `UploadService.RecoverAfterRestart()` : tout fichier resté `uploading` redevient `queued` (`RequeueInterrupted`). Si un upload token avait été obtenu et persisté avant le crash (crash **entre** l'upload des octets et le `batchCreate`), il est **réutilisé tel quel** s'il a moins de 20 h : les octets ne sont pas renvoyés. |
-| **Perte réseau** | Les erreurs `HttpRequestException` et les 5xx/429 sont retentées dans la même tentative (jusqu'à 3 relances internes, `InAttemptTransientRetries`, avec backoff). Au-delà, le fichier passe en `failed` avec `retry_count + 1` — il sera repris tant que `retry_count < MaxRetries` (défaut 5). Après **5 échecs transitoires consécutifs** tous fichiers confondus (`ConsecutiveTransientLimit`), le disjoncteur arrête tout le run (voir §8) ; les fichiers `uploading` repassent en `paused`. |
-| **Access token expiré (401 en cours d'upload)** | `InvalidateAccessToken()` puis nouvel essai : `GetAccessTokenAsync` rafraîchit via le refresh token (sous verrou pour éviter les doubles refresh). Transparent pour l'utilisateur. |
-| **Refresh token expiré ou révoqué** | Le refresh renvoie 400/401 → `AuthRequiredException`. Le run s'interrompt proprement : fichiers `uploading` → `paused`, événement `AuthenticationLost` → l'UI affiche « Session Google expirée : reconnectez votre compte puis relancez l'upload. » Rien n'est perdu ; après reconnexion, l'upload reprend où il en était. |
-| **Fichier disparu (déplacé/supprimé depuis le scan)** | Vérifié juste avant l'upload : `File.Exists` échoue → `scan_status = 'missing'`, statut `failed` avec le message « Fichier introuvable (déplacé ou supprimé depuis le scan). », marqué **permanent** (le `retry_count` est porté à `MaxRetries` pour ne pas retenter en boucle). Le scan marque aussi `missing` les fichiers non revus sous la racine (sauf ceux déjà `uploaded`). |
-| **Échec du `batchCreate` entier (erreur permanente)** | Les fichiers du batch repassent en `queued` et leurs upload tokens **restent en base** : au prochain passage, s'ils sont encore frais, seuls les `batchCreate` seront rejoués, sans renvoyer les octets. |
-| **Échec d'un élément individuel du `batchCreate`** | Le token est considéré consommé ou refusé : il est **jeté** (`upload_token = NULL`) et le fichier passe en `failed` (transitoire) — les octets seront renvoyés à la tentative suivante. |
-| **Pause utilisateur** | `PauseTokenSource` : le fichier en cours **se termine** (l'attente n'est vérifiée qu'entre les étapes), puis le pipeline se fige sans rien perdre. `Resume` repart instantanément. |
-| **Fichier en erreur épuisé** | Un fichier `failed` avec `retry_count ≥ MaxRetries` n'est plus sélectionné. Le bouton « remettre en file » de l'UI appelle `MediaFileRepository.ResetFailed()` (retry_count remis à 0, statut `queued`, erreur effacée). |
+| **Window closing** | `MainWindow.OnClosing` cancels the close, calls `MainViewModel.ShutdownAsync()` (scan cancellation, `UploadService.StopAsync()`), then closes for real. Cancellation moves `uploading` files to **`paused`** (`MarkUploadingAsPaused`). On the next upload launch, `RequeuePaused()` puts them back in `queued`. |
+| **Crash / power loss** | No code runs, but the already-persisted statuses survive (WAL). On the next startup, `App.OnStartup` calls `UploadService.RecoverAfterRestart()`: any file left `uploading` becomes `queued` again (`RequeueInterrupted`). If an upload token had been obtained and persisted before the crash (crash **between** the byte upload and the `batchCreate`), it is **reused as-is** if it is less than 20 h old: the bytes are not resent. |
+| **Network loss** | `HttpRequestException` errors and 5xx/429 are retried within the same attempt (up to 3 internal retries, `InAttemptTransientRetries`, with backoff). Beyond that, the file moves to `failed` with `retry_count + 1` — it will be resumed as long as `retry_count < MaxRetries` (default 5). After **5 consecutive transient failures** across all files (`ConsecutiveTransientLimit`), the circuit breaker stops the whole run (see §8); `uploading` files move back to `paused`. |
+| **Access token expired (401 mid-upload)** | `InvalidateAccessToken()` then a new attempt: `GetAccessTokenAsync` refreshes via the refresh token (under a lock to avoid double refreshes). Transparent to the user. |
+| **Refresh token expired or revoked** | The refresh returns 400/401 → `AuthRequiredException`. The run stops cleanly: `uploading` files → `paused`, event `AuthenticationLost` → the UI shows "Google session expired: reconnect your account then relaunch the upload." Nothing is lost; after reconnecting, the upload resumes where it left off. |
+| **File gone (moved/deleted since the scan)** | Checked just before the upload: `File.Exists` fails → `scan_status = 'missing'`, status `failed` with the message "File not found (moved or deleted since the scan).", marked **permanent** (`retry_count` is raised to `MaxRetries` so it is not retried in a loop). The scan also marks as `missing` the files not seen again under the root (except those already `uploaded`). |
+| **Failure of the whole `batchCreate` (permanent error)** | The batch's files move back to `queued` and their upload tokens **stay in the database**: on the next pass, if they are still fresh, only the `batchCreate` calls are replayed, without resending the bytes. |
+| **Failure of an individual `batchCreate` item** | The token is considered consumed or refused: it is **discarded** (`upload_token = NULL`) and the file moves to `failed` (transient) — the bytes will be resent on the next attempt. |
+| **User pause** | `PauseTokenSource`: the file in progress **finishes** (the wait is only checked between steps), then the pipeline freezes without losing anything. `Resume` restarts instantly. |
+| **Exhausted failed file** | A `failed` file with `retry_count ≥ MaxRetries` is no longer selected. The UI's "requeue" button calls `MediaFileRepository.ResetFailed()` (retry_count reset to 0, status `queued`, error cleared). |
 
-Garantie anti-boucle dans un même run : `RunAsync` tient un `HashSet` `attemptedThisRun`
-— un fichier n'est tenté qu'une fois par run, même s'il retombe en `failed` relançable.
+Anti-loop guarantee within a single run: `RunAsync` keeps a `HashSet`
+`attemptedThisRun` — a file is only attempted once per run, even if it falls back to a
+retriable `failed`.
 
-## 8. Gestion des erreurs
+## 8. Error handling
 
-### Classification transitoire / permanente
+### Transient / permanent classification
 
-`GooglePhotosApi.ClassifyError` produit une `GooglePhotosApiException` portant
-`StatusCode`, `IsTransient` et `RetryAfter` :
+`GooglePhotosApi.ClassifyError` produces a `GooglePhotosApiException` carrying
+`StatusCode`, `IsTransient` and `RetryAfter`:
 
-| Statut HTTP | Classification | Traitement |
+| HTTP status | Classification | Handling |
 |---|---|---|
-| **429** | Transitoire | Relance avec backoff ; message « Limite de requêtes Google Photos atteinte (429). Nouvel essai automatique. » |
-| **≥ 500** | Transitoire | Relance avec backoff. |
-| **403** contenant `quota` ou `rate` dans le message d'erreur Google | Transitoire | Relance avec backoff (quota/limite de débit). |
-| **403** (autre) | Permanente | Fichier en `failed`, `retry_count` porté au maximum (pas de relance automatique). |
-| **401** | Cas spécial | Ni transitoire ni permanente : invalidation du token en cache + refresh, puis nouvel essai. Si le refresh lui-même échoue → `AuthRequiredException` (reconnexion requise). |
-| **408 / 425** | Transitoire | Relance avec backoff (timeouts rejouables par définition, RFC 9110). |
-| Timeout du `HttpClient` (`TaskCanceledException` sans annulation utilisateur) | Transitoire | Reclassée en `GooglePhotosApiException` transitoire : backoff/relance, sans être confondue avec un arrêt volontaire. |
-| Autres 4xx | Permanente | `failed`, non relancé automatiquement. |
-| `HttpRequestException` (réseau) | Transitoire | Relances internes, puis `failed` avec `retry_count + 1` ; compte dans le disjoncteur réseau. |
-| `IOException` / `UnauthorizedAccessException` (erreur locale : fichier verrouillé, placeholder cloud...) | Transitoire | `failed` avec `retry_count + 1`, mais **ne compte pas** dans le disjoncteur réseau. |
+| **429** | Transient | Retry with backoff; message "Google Photos request limit reached (429). Automatic retry." |
+| **≥ 500** | Transient | Retry with backoff. |
+| **403** containing `quota` or `rate` in the Google error message | Transient | Retry with backoff (quota/rate limit). |
+| **403** (other) | Permanent | File to `failed`, `retry_count` raised to the maximum (no automatic retry). |
+| **401** | Special case | Neither transient nor permanent: invalidate the cached token + refresh, then a new attempt. If the refresh itself fails → `AuthRequiredException` (reconnection required). |
+| **408 / 425** | Transient | Retry with backoff (timeouts replayable by definition, RFC 9110). |
+| `HttpClient` timeout (`TaskCanceledException` without user cancellation) | Transient | Reclassified as a transient `GooglePhotosApiException`: backoff/retry, without being confused with a deliberate stop. |
+| Other 4xx | Permanent | `failed`, not retried automatically. |
+| `HttpRequestException` (network) | Transient | Internal retries, then `failed` with `retry_count + 1`; counts toward the network circuit breaker. |
+| `IOException` / `UnauthorizedAccessException` (local error: locked file, cloud placeholder...) | Transient | `failed` with `retry_count + 1`, but **does not count** toward the network circuit breaker. |
 
-Deux niveaux de relance se combinent :
+Two retry levels combine:
 
-1. **Dans la tentative** : jusqu'à 3 relances internes (`InAttemptTransientRetries`)
-   avec backoff, pour absorber les hoquets courts sans toucher au statut du fichier.
-2. **Entre les runs** : un fichier `failed` transitoire est repris tant que
-   `retry_count < MaxRetries` (défaut 5, configurable 0–20).
+1. **Within the attempt**: up to 3 internal retries (`InAttemptTransientRetries`)
+   with backoff, to absorb short hiccups without touching the file's status.
+2. **Between runs**: a transient `failed` file is resumed as long as
+   `retry_count < MaxRetries` (default 5, configurable 0–20).
 
 ### Backoff
 
-`Backoff.For(attempt, retryAfterHint)` :
+`Backoff.For(attempt, retryAfterHint)`:
 
-- si Google fournit un en-tête `Retry-After` (durée ou date), il est **honoré en
-  priorité**, borné à 60 s ;
-- sinon : `1 s × 2^attempt`, plafonné à **60 s**, plus un **jitter** aléatoire de
-  0–500 ms pour désynchroniser les clients.
+- if Google provides a `Retry-After` header (duration or date), it is **honored
+  first**, capped at 60 s;
+- otherwise: `1 s × 2^attempt`, capped at **60 s**, plus a random **jitter** of
+  0–500 ms to desynchronize clients.
 
-### Disjoncteur (circuit breaker)
+### Circuit breaker
 
-`UploadService` compte les échecs **réseau consécutifs** tous fichiers confondus
-(`_consecutiveTransient`, remis à zéro à chaque succès ; les erreurs locales de type
-fichier verrouillé n'y participent pas). Au 5ᵉ
-(`ConsecutiveTransientLimit`), `RegisterTransientFailure` lève :
-« Trop d'erreurs réseau consécutives. Vérifiez la connexion Internet puis relancez
-l'upload. » Le run entier s'arrête proprement (fichiers `uploading` → `paused`) plutôt
-que de marquer `failed` des centaines de fichiers pendant une coupure réseau prolongée.
+`UploadService` counts **consecutive network failures** across all files
+(`_consecutiveTransient`, reset to zero on each success; local errors such as a locked
+file do not participate). On the 5th (`ConsecutiveTransientLimit`),
+`RegisterTransientFailure` throws:
+"Too many consecutive network errors. Check the Internet connection then relaunch the
+upload." The whole run stops cleanly (`uploading` files → `paused`) rather than marking
+hundreds of files `failed` during a prolonged network outage.
 
-### Erreurs UI
+### UI errors
 
-`App.xaml.cs` installe un gestionnaire `DispatcherUnhandledException` : toute exception
-non gérée sur le thread UI est journalisée, affichée dans une boîte de dialogue, et
-marquée gérée — l'application ne se ferme pas brutalement.
+`App.xaml.cs` installs a `DispatcherUnhandledException` handler: any unhandled exception
+on the UI thread is logged, shown in a dialog box, and marked handled — the application
+does not close abruptly.
 
-## 9. Threading et marshaling vers l'UI
+## 9. Threading and marshaling to the UI
 
-- **Thread UI (Dispatcher WPF)** : uniquement l'affichage et les commandes MVVM.
-  Aucun hash, aucun appel réseau, aucune requête SQLite longue n'y est exécuté.
-- **Scan** : `FileScanner.ScanAsync` enveloppe l'énumération + hash dans un `Task.Run` ;
-  la progression remonte via `IProgress<ScanProgress>` (le `Progress<T>` créé sur le
-  thread UI rebascule automatiquement dessus).
-- **Upload** : `UploadService.Start` lance `RunAsync` dans un `Task.Run`. À l'intérieur
-  d'un batch, la phase « octets » est parallélisée par un `SemaphoreSlim(Concurrency)`
-  (1 à 3 workers, défaut 2) ; la phase `batchCreate` est un appel unique. Les compteurs
-  partagés utilisent `Interlocked`, l'état du service est protégé par `_stateLock`, et
-  la fenêtre de débit par `_rateLock`.
-- **Pause/annulation coopératives** : `PauseTokenSource.WaitWhilePausedAsync(ct)` et
-  `CancellationToken` sont vérifiés entre chaque étape — jamais au milieu d'une
-  écriture SQLite, ce qui garantit des états cohérents en base.
-- **Marshaling** : `UploadService` et `Logger` publient des événements .NET ordinaires
+- **UI thread (WPF Dispatcher)**: only display and MVVM commands. No hashing, no network
+  call, no long SQLite query runs on it.
+- **Scan**: `FileScanner.ScanAsync` wraps the enumeration + hash in a `Task.Run`;
+  progress flows up via `IProgress<ScanProgress>` (the `Progress<T>` created on the UI
+  thread automatically switches back to it).
+- **Upload**: `UploadService.Start` launches `RunAsync` in a `Task.Run`. Within a batch,
+  the "bytes" phase is parallelized by a `SemaphoreSlim(Concurrency)`
+  (1 to 3 workers, default 2); the `batchCreate` phase is a single call. Shared counters
+  use `Interlocked`, the service state is protected by `_stateLock`, and the throughput
+  window by `_rateLock`.
+- **Cooperative pause/cancellation**: `PauseTokenSource.WaitWhilePausedAsync(ct)` and
+  `CancellationToken` are checked between each step — never in the middle of a SQLite
+  write, which guarantees consistent states in the database.
+- **Marshaling**: `UploadService` and `Logger` raise ordinary .NET events
   (`StateChanged`, `CountersChanged`, `FileProgressChanged`, `RunCompleted`,
-  `AuthenticationLost`, `MessageLogged`) **depuis les threads de travail**. C'est
-  `MainViewModel` qui rebascule systématiquement vers le thread UI via `RunOnUi`
-  (`Dispatcher.CheckAccess()` puis `Dispatcher.BeginInvoke`). Les événements de
-  progression fichier (émis tous les ~128 Ko lus) sont **throttlés à 10 mises à jour/s**
-  côté ViewModel pour ne pas saturer le Dispatcher.
-- **SQLite concurrent** : chaque opération de dépôt ouvre sa propre connexion
-  (mode WAL + `busy_timeout=5000`), ce qui permet la coexistence scan / upload / UI
-  sans verrou applicatif global.
-- **Fermeture** : `MainWindow.OnClosing` est asynchrone mais garde la fenêtre ouverte
-  (`e.Cancel = true`) tant que `ShutdownAsync` n'a pas terminé l'arrêt propre.
+  `AuthenticationLost`, `MessageLogged`) **from the worker threads**. It is
+  `MainViewModel` that systematically switches back to the UI thread via `RunOnUi`
+  (`Dispatcher.CheckAccess()` then `Dispatcher.BeginInvoke`). File progress events
+  (emitted every ~128 KB read) are **throttled to 10 updates/s** on the ViewModel side
+  so as not to saturate the Dispatcher.
+- **Concurrent SQLite**: each repository operation opens its own connection
+  (WAL mode + `busy_timeout=5000`), which allows scan / upload / UI to coexist without a
+  global application-level lock.
+- **Closing**: `MainWindow.OnClosing` is asynchronous but keeps the window open
+  (`e.Cancel = true`) until `ShutdownAsync` has completed the clean shutdown.
 
-## 10. Limites assumées
+## 10. Assumed limitations
 
-- **Pas de détection de doublons contre toute la bibliothèque Google Photos** : l'API
-  ne le permet plus depuis le 31 mars 2025 (scope de lecture limité à
-  `readonly.appcreateddata`). Un fichier déjà présent dans Google Photos mais uploadé
-  par un autre moyen **sera dupliqué**. L'UI l'annonce explicitement (voir §1).
-- **Stockage** : les uploads comptent dans le quota de stockage du compte Google
-  (qualité d'origine) ; l'API ne propose pas l'option « économiseur de stockage ».
-- **200 Mo maximum par photo** (limite Google Photos) ; les fichiers plus gros sont
-  marqués `skipped_incompatible` avec la raison exacte.
-- **L'utilisateur crée son propre client OAuth** dans Google Cloud Console (type
-  « Application de bureau ») : l'application ne distribue aucun secret. Le Client ID est
-  stocké en SQLite (non secret) ; le Client Secret et le refresh token vont dans le
-  Gestionnaire d'identifiants Windows.
-- **Compatibilité par extension et taille uniquement** : `CompatibilityChecker` ne
-  décode pas les fichiers ; un fichier corrompu passera le filtre local et sera refusé
-  par Google au `batchCreate` (l'erreur retournée par Google est alors enregistrée
-  dans `last_error`).
-- **Upload « raw » non repris au milieu d'un fichier** : si l'envoi des octets d'un
-  fichier est interrompu, il recommence depuis le début de ce fichier (le protocole
-  `raw` utilisé n'offre pas de reprise partielle) ; en revanche, un upload token déjà
-  obtenu évite tout renvoi d'octets.
+- **No duplicate detection against the entire Google Photos library**: the API no longer
+  allows it since March 31, 2025 (read scope limited to `readonly.appcreateddata`). A
+  file already present in Google Photos but uploaded by another means **will be
+  duplicated**. The UI states this explicitly (see §1).
+- **Storage**: uploads count toward the Google account's storage quota (original
+  quality); the API does not offer the "storage saver" option.
+- **200 MB maximum per photo** (Google Photos limit); larger files are marked
+  `skipped_incompatible` with the exact reason.
+- **The user creates their own OAuth client** in the Google Cloud Console (type
+  "Desktop app"): the application distributes no secret. The Client ID is stored in
+  SQLite (not secret); the Client Secret and the refresh token go into the Windows
+  Credential Manager.
+- **Compatibility by extension and size only**: `CompatibilityChecker` does not decode
+  files; a corrupted file will pass the local filter and be refused by Google at
+  `batchCreate` (the error returned by Google is then recorded in `last_error`).
+- **"raw" upload not resumed mid-file**: if the byte upload of a file is interrupted, it
+  restarts from the beginning of that file (the `raw` protocol used offers no partial
+  resume); however, an already-obtained upload token avoids any byte resend.
 
-## 11. Build et distribution
+## 11. Build and distribution
 
-- **Compilation / tests** : `dotnet build` et `dotnet test` sur `GooglePhotosUploader.sln`
+- **Compilation / tests**: `dotnet build` and `dotnet test` on `GooglePhotosUploader.sln`
   (script `build/build.ps1`).
-- **Publication** : `build/publish.ps1` produit un exécutable **self-contained win-x64**
-  dans `dist\win-x64\` (`GooglePhotosLocalUploader.exe`) — aucune installation de .NET
-  requise sur la machine cible.
-- **Installeur** : `installer/setup.iss` (Inno Setup).
-- **Données locales** : tout vit sous `%APPDATA%\GooglePhotosLocalUploader\` ; le bouton
-  « Supprimer les données locales » de l'UI arrête l'upload, déconnecte le compte
-  (révocation + effacement des secrets), vide les pools SQLite et supprime le dossier —
-  sans jamais toucher aux photos locales ni aux médias Google Photos.
+- **Publishing**: `build/publish.ps1` produces a **self-contained win-x64** executable
+  in `dist\win-x64\` (`GooglePhotosLocalUploader.exe`) — no .NET installation required on
+  the target machine.
+- **Installer**: `installer/setup.iss` (Inno Setup).
+- **Local data**: everything lives under `%APPDATA%\GooglePhotosLocalUploader\`; the UI's
+  "Delete local data" button stops the upload, disconnects the account (revocation +
+  clearing of the secrets), drains the SQLite pools and deletes the folder — without ever
+  touching the local photos or the Google Photos media.

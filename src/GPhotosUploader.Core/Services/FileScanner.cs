@@ -1,6 +1,7 @@
 using System.Security.Cryptography;
 using GPhotosUploader.Core.Data;
 using GPhotosUploader.Core.Models;
+using GPhotosUploader.Core.Resources;
 using Microsoft.Data.Sqlite;
 
 namespace GPhotosUploader.Core.Services;
@@ -33,7 +34,7 @@ public class FileScanner
         IProgress<ScanProgress>? progress, CancellationToken ct)
     {
         if (!Directory.Exists(rootFolder))
-            throw new DirectoryNotFoundException($"Dossier introuvable : {rootFolder}");
+            throw new DirectoryNotFoundException(Loc.TF("Scan_DirNotFound", rootFolder));
 
         var checker = new CompatibilityChecker(settings);
         var scanStart = DateTime.UtcNow;
@@ -85,7 +86,7 @@ public class FileScanner
                     catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or SqliteException)
                     {
                         errors++;
-                        _log.Warning("Scan", $"Fichier ignoré pour cette passe : {path} ({ex.Message})");
+                        _log.Warning("Scan", Loc.TF("Log_Scan_FileSkipped", path, ex.Message));
                     }
 
                     if (unchangedIds.Count >= 500)
@@ -101,9 +102,8 @@ public class FileScanner
         int missing = _repo.MarkMissingUnderRoot(EnsureTrailingSeparator(rootFolder), scanStart);
 
         var result = new ScanResult(seen, added, unchanged, modified, incompatible, duplicates, errors, missing);
-        _log.Info("Scan",
-            $"Scan terminé : {seen} fichiers vus, {added} nouveaux, {modified} modifiés, {unchanged} inchangés, " +
-            $"{duplicates} doublons locaux, {incompatible} incompatibles, {errors} erreurs, {missing} disparus.");
+        _log.Info("Scan", Loc.TF("Log_Scan_Done",
+            seen, added, modified, unchanged, duplicates, incompatible, errors, missing));
         return result;
     }
 
@@ -186,7 +186,7 @@ public class FileScanner
         {
             file.UploadStatus = UploadStatus.SkippedDuplicateRemoteAppCreated;
             file.GoogleMediaItemId = uploadedTwin.GoogleMediaItemId;
-            file.LastError = $"Contenu identique déjà uploadé par cette application : {uploadedTwin.LocalPath}";
+            file.LastError = Loc.TF("Scan_Reason_RemoteDuplicate", uploadedTwin.LocalPath);
             _repo.Update(file);
             return FileOutcome.Duplicate;
         }
@@ -198,7 +198,7 @@ public class FileScanner
         if (localTwin is not null)
         {
             file.UploadStatus = UploadStatus.SkippedDuplicateLocal;
-            file.LastError = $"Doublon local de : {localTwin.LocalPath}";
+            file.LastError = Loc.TF("Scan_Reason_LocalDuplicate", localTwin.LocalPath);
             _repo.Update(file);
             return FileOutcome.Duplicate;
         }

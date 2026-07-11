@@ -7,6 +7,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using GPhotosUploader.Core.Data;
 using GPhotosUploader.Core.Models;
+using GPhotosUploader.Core.Resources;
 using GPhotosUploader.Core.Services;
 using Microsoft.Win32;
 
@@ -35,13 +36,16 @@ public class BatchRow
     public string Status { get; init; } = "";
 }
 
+/// <summary>Option de filtre de la vue Détails : libellé traduit + statut ciblé (null = tous).</summary>
+public class FilterOption
+{
+    public string Label { get; init; } = "";
+    public UploadStatus? Status { get; init; }
+    public override string ToString() => Label;
+}
+
 public partial class MainViewModel : ObservableObject
 {
-    public const string DuplicateDisclaimer =
-        "Google Photos ne permet pas à cette application de vérifier toute votre bibliothèque. " +
-        "La détection des doublons est garantie uniquement pour les fichiers déjà indexés localement " +
-        "ou uploadés par cette application.";
-
     private readonly SettingsRepository _settingsRepo;
     private readonly MediaFileRepository _files;
     private readonly BatchRepository _batches;
@@ -69,6 +73,9 @@ public partial class MainViewModel : ObservableObject
         _upload = upload;
         _log = log;
         _dispatcher = Application.Current.Dispatcher;
+
+        FilterOptions = BuildFilterOptions();
+        _selectedFilter = FilterOptions[0];
 
         _settings = _settingsRepo.Load();
         RootFolder = _settings.RootFolder;
@@ -116,7 +123,7 @@ public partial class MainViewModel : ObservableObject
         _upload.AuthenticationLost += () => RunOnUi(() =>
         {
             RefreshAccountStatus();
-            StatusMessage = "Session Google expirée : reconnectez votre compte puis relancez l'upload.";
+            StatusMessage = Loc.T("Status_AuthLost");
         });
         _log.MessageLogged += (level, line) => RunOnUi(() =>
         {
@@ -139,12 +146,12 @@ public partial class MainViewModel : ObservableObject
     // ---- Propriétés observables ----
 
     [ObservableProperty] private string _rootFolder = "";
-    [ObservableProperty] private string _accountStatusText = "Aucun compte connecté";
+    [ObservableProperty] private string _accountStatusText = "";
     [ObservableProperty] private bool _isConnected;
     [ObservableProperty] private bool _isConnecting;
     [ObservableProperty] private bool _isScanning;
     [ObservableProperty] private UploadServiceState _serviceState = UploadServiceState.Idle;
-    [ObservableProperty] private string _stateText = "Prêt";
+    [ObservableProperty] private string _stateText = "";
     [ObservableProperty] private string _statusMessage = "";
 
     [ObservableProperty] private int _totalFiles;
@@ -153,7 +160,7 @@ public partial class MainViewModel : ObservableObject
     [ObservableProperty] private int _skippedCount;
     [ObservableProperty] private int _errorCount;
     [ObservableProperty] private double _globalProgress;
-    [ObservableProperty] private string _globalProgressText = "0 %";
+    [ObservableProperty] private string _globalProgressText = "";
 
     [ObservableProperty] private string _currentFileName = "";
     [ObservableProperty] private double _currentFileProgress;
@@ -169,18 +176,12 @@ public partial class MainViewModel : ObservableObject
     [ObservableProperty] private string _includedExtensions = "";
     [ObservableProperty] private string _oAuthClientId = "";
 
-    [ObservableProperty] private string _selectedStatusFilter = "Tous";
+    [ObservableProperty] private FilterOption _selectedFilter;
 
     public ObservableCollection<string> LogLines { get; } = new();
     public ObservableCollection<FileRow> FileRows { get; } = new();
     public ObservableCollection<BatchRow> BatchRows { get; } = new();
-    public string[] StatusFilters { get; } =
-    {
-        "Tous", "En attente", "Uploadés", "Erreurs", "Ignorés (doublon local)",
-        "Ignorés (déjà uploadé)", "Ignorés (incompatible)"
-    };
-
-    public string DuplicateDisclaimerText => DuplicateDisclaimer;
+    public IReadOnlyList<FilterOption> FilterOptions { get; }
 
     private bool IsBusy => IsScanning || IsConnecting || ServiceState != UploadServiceState.Idle;
 
@@ -202,16 +203,27 @@ public partial class MainViewModel : ObservableObject
     public AsyncRelayCommand DeleteDataCommand { get; }
     public RelayCommand OpenOAuthWizardCommand { get; }
 
+    private static IReadOnlyList<FilterOption> BuildFilterOptions() => new List<FilterOption>
+    {
+        new() { Label = Loc.T("Filter_All"), Status = null },
+        new() { Label = Loc.T("Filter_Pending"), Status = UploadStatus.Queued },
+        new() { Label = Loc.T("Filter_Uploaded"), Status = UploadStatus.Uploaded },
+        new() { Label = Loc.T("Filter_Errors"), Status = UploadStatus.Failed },
+        new() { Label = Loc.T("Filter_SkippedLocal"), Status = UploadStatus.SkippedDuplicateLocal },
+        new() { Label = Loc.T("Filter_SkippedRemote"), Status = UploadStatus.SkippedDuplicateRemoteAppCreated },
+        new() { Label = Loc.T("Filter_SkippedIncompatible"), Status = UploadStatus.SkippedIncompatible },
+    };
+
     private void BrowseFolder()
     {
-        var dialog = new OpenFolderDialog { Title = "Choisir le dossier racine contenant vos photos" };
+        var dialog = new OpenFolderDialog { Title = Loc.T("Dialog_ChooseFolder_Title") };
         if (!string.IsNullOrEmpty(RootFolder) && Directory.Exists(RootFolder))
             dialog.InitialDirectory = RootFolder;
         if (dialog.ShowDialog() == true)
         {
             RootFolder = dialog.FolderName;
             SaveSettings();
-            _log.Info("Config", $"Dossier racine sélectionné : {RootFolder}");
+            _log.Info("Config", Loc.TF("Log_RootSelected", RootFolder));
         }
         RaiseCommandStates();
     }
@@ -230,10 +242,8 @@ public partial class MainViewModel : ObservableObject
         if (!OAuthClientConfig.IsValidClientId(clientId) || string.IsNullOrWhiteSpace(secret))
         {
             var open = MessageBox.Show(
-                "Le Client ID est manquant ou invalide (il doit se terminer par " +
-                $"« {OAuthClientConfig.ClientIdSuffix} »), ou le Client Secret est manquant.\n\n" +
-                "Voulez-vous ouvrir l'assistant de configuration pas à pas ?",
-                "Connexion Google", MessageBoxButton.YesNo, MessageBoxImage.Question);
+                Loc.TF("Msg_MissingCreds_Text", OAuthClientConfig.ClientIdSuffix),
+                Loc.T("Msg_ConnectGoogle_Caption"), MessageBoxButton.YesNo, MessageBoxImage.Question);
             if (open == MessageBoxResult.Yes)
                 OpenOAuthWizard();
             return;
@@ -243,23 +253,23 @@ public partial class MainViewModel : ObservableObject
             _connectCts = new CancellationTokenSource();
             IsConnecting = true;
             RaiseCommandStates();
-            StatusMessage = "Autorisation en cours dans votre navigateur...";
+            StatusMessage = Loc.T("Status_Authorizing");
             var account = await _auth.SignInAsync(clientId, secret, _connectCts.Token);
-            StatusMessage = $"Compte connecté : {account.Email}";
+            StatusMessage = Loc.TF("Status_ConnectedAccount", account.Email);
         }
         catch (OperationCanceledException)
         {
-            StatusMessage = "Connexion annulée.";
+            StatusMessage = Loc.T("Status_ConnectionCancelled");
         }
         catch (AuthRequiredException ex)
         {
             StatusMessage = ex.Message;
-            MessageBox.Show(ex.Message, "Connexion Google", MessageBoxButton.OK, MessageBoxImage.Warning);
+            MessageBox.Show(ex.Message, Loc.T("Msg_ConnectGoogle_Caption"), MessageBoxButton.OK, MessageBoxImage.Warning);
         }
         catch (Exception ex)
         {
-            _log.Error("Auth", $"Échec de la connexion Google : {ex.Message}");
-            MessageBox.Show($"Échec de la connexion : {ex.Message}", "Connexion Google",
+            _log.Error("Auth", Loc.TF("Log_ConnectFailed", ex.Message));
+            MessageBox.Show(Loc.TF("Msg_ConnectFailed_Text", ex.Message), Loc.T("Msg_ConnectGoogle_Caption"),
                 MessageBoxButton.OK, MessageBoxImage.Error);
         }
         finally
@@ -280,16 +290,16 @@ public partial class MainViewModel : ObservableObject
             OAuthClientId = credentials.ClientId;
             SaveSettings();
             CredentialStore.SaveClientSecret(credentials.ClientId, credentials.ClientSecret);
-            _log.Info("Config", "Identifiants OAuth enregistrés via l'assistant de configuration.");
-            StatusMessage = "Identifiants OAuth enregistrés. Cliquez sur « Connecter mon compte Google ».";
+            _log.Info("Config", Loc.T("Log_CredsSavedWizard"));
+            StatusMessage = Loc.T("Status_CredsSaved");
         }
     }
 
     private async Task DisconnectAsync()
     {
         var confirm = MessageBox.Show(
-            "Déconnecter le compte Google ?\nLe refresh token sera révoqué et supprimé du Gestionnaire d'identifiants Windows.",
-            "Déconnexion", MessageBoxButton.YesNo, MessageBoxImage.Question);
+            Loc.T("Msg_Disconnect_Text"),
+            Loc.T("Msg_Disconnect_Caption"), MessageBoxButton.YesNo, MessageBoxImage.Question);
         if (confirm != MessageBoxResult.Yes) return;
         _connectCts?.Cancel();
         await _auth.SignOutAsync();
@@ -301,36 +311,35 @@ public partial class MainViewModel : ObservableObject
     {
         if (!Directory.Exists(RootFolder))
         {
-            MessageBox.Show("Le dossier racine n'existe pas ou n'est pas accessible.",
-                "Scan", MessageBoxButton.OK, MessageBoxImage.Warning);
+            MessageBox.Show(Loc.T("Msg_RootMissing_Text"),
+                Loc.T("Msg_Scan_Caption"), MessageBoxButton.OK, MessageBoxImage.Warning);
             return;
         }
         SaveSettings();
         IsScanning = true;
         RaiseCommandStates();
-        StatusMessage = "Scan en cours...";
+        StatusMessage = Loc.T("Status_ScanRunning");
         UpdateStateText();
         _scanCts = new CancellationTokenSource();
         var progress = new Progress<ScanProgress>(p =>
         {
-            StatusMessage = $"Scan en cours : {p.FilesSeen} fichiers examinés...";
+            StatusMessage = Loc.TF("Status_ScanProgress", p.FilesSeen);
         });
         try
         {
             // Instantané des paramètres : le scan ne doit pas voir les éditions à chaud.
             var result = await _scanner.ScanAsync(RootFolder, _settings.Clone(), progress, _scanCts.Token);
-            StatusMessage =
-                $"Scan terminé : {result.TotalSeen} images vues, {result.NewFiles} nouvelles, " +
-                $"{result.Duplicates} doublons, {result.Incompatible} incompatibles.";
+            StatusMessage = Loc.TF("Status_ScanDone",
+                result.TotalSeen, result.NewFiles, result.Duplicates, result.Incompatible);
         }
         catch (OperationCanceledException)
         {
-            StatusMessage = "Scan interrompu. Relancez-le pour compléter l'inventaire.";
+            StatusMessage = Loc.T("Status_ScanCancelled");
         }
         catch (Exception ex)
         {
-            _log.Error("Scan", $"Échec du scan : {ex.Message}");
-            StatusMessage = $"Échec du scan : {ex.Message}";
+            _log.Error("Scan", Loc.TF("Log_ScanFailed", ex.Message));
+            StatusMessage = Loc.TF("Status_ScanFailed", ex.Message);
         }
         finally
         {
@@ -349,7 +358,7 @@ public partial class MainViewModel : ObservableObject
         // Instantané des paramètres : le run d'upload est immuable, les éditions
         // faites ensuite dans l'onglet Paramètres s'appliqueront au prochain run.
         if (_upload.Start(_settings.Clone()))
-            StatusMessage = "Upload démarré.";
+            StatusMessage = Loc.T("Status_UploadStarted");
         RaiseCommandStates();
     }
 
@@ -378,26 +387,26 @@ public partial class MainViewModel : ObservableObject
         Concurrency = _settings.Concurrency;
         MaxFileSizeMb = _settings.MaxFileSizeMb;
         IncludedExtensions = _settings.IncludedExtensions;
-        StatusMessage = "Paramètres enregistrés.";
+        StatusMessage = Loc.T("Status_SettingsSaved");
     }
 
     private void ExportLog()
     {
         var dialog = new SaveFileDialog
         {
-            Title = "Exporter le journal",
-            FileName = $"google-photos-uploader-journal-{DateTime.Now:yyyyMMdd-HHmm}.txt",
-            Filter = "Fichier texte (*.txt)|*.txt"
+            Title = Loc.T("Dialog_ExportLog_Title"),
+            FileName = $"google-photos-uploader-log-{DateTime.Now:yyyyMMdd-HHmm}.txt",
+            Filter = Loc.T("Dialog_ExportLog_Filter")
         };
         if (dialog.ShowDialog() != true) return;
         try
         {
             _log.ExportTo(dialog.FileName);
-            StatusMessage = $"Journal exporté vers {dialog.FileName}";
+            StatusMessage = Loc.TF("Status_LogExported", dialog.FileName);
         }
         catch (Exception ex)
         {
-            MessageBox.Show($"Export impossible : {ex.Message}", "Export du journal",
+            MessageBox.Show(Loc.TF("Msg_ExportFailed_Text", ex.Message), Loc.T("Msg_ExportLog_Caption"),
                 MessageBoxButton.OK, MessageBoxImage.Error);
         }
     }
@@ -405,7 +414,7 @@ public partial class MainViewModel : ObservableObject
     private void ResetFailed()
     {
         var count = _files.ResetFailed();
-        StatusMessage = $"{count} fichier(s) en erreur remis en file d'attente.";
+        StatusMessage = Loc.TF("Status_ResetFailed", count);
         RefreshCounters();
         RefreshDetails();
     }
@@ -413,12 +422,8 @@ public partial class MainViewModel : ObservableObject
     private async Task DeleteLocalDataAsync()
     {
         var confirm = MessageBox.Show(
-            "Supprimer toutes les données locales de l'application ?\n\n" +
-            "Cela efface : l'inventaire SQLite, les journaux, les paramètres et les secrets " +
-            "du Gestionnaire d'identifiants Windows.\n\n" +
-            "Vos photos locales et vos médias Google Photos ne sont PAS touchés.\n" +
-            "L'application se fermera ensuite.",
-            "Supprimer les données locales", MessageBoxButton.YesNo, MessageBoxImage.Warning);
+            Loc.T("Msg_DeleteData_Text"),
+            Loc.T("Msg_DeleteData_Caption"), MessageBoxButton.YesNo, MessageBoxImage.Warning);
         if (confirm != MessageBoxResult.Yes) return;
 
         _connectCts?.Cancel();
@@ -436,9 +441,8 @@ public partial class MainViewModel : ObservableObject
         catch (Exception ex)
         {
             MessageBox.Show(
-                $"Certaines données n'ont pas pu être supprimées : {ex.Message}\n" +
-                $"Vous pouvez supprimer manuellement le dossier :\n{AppPaths.DataDirectory}",
-                "Suppression partielle", MessageBoxButton.OK, MessageBoxImage.Warning);
+                Loc.TF("Msg_DeletePartial_Text", ex.Message, AppPaths.DataDirectory),
+                Loc.T("Msg_DeletePartial_Caption"), MessageBoxButton.OK, MessageBoxImage.Warning);
         }
         Application.Current.Shutdown();
     }
@@ -460,8 +464,8 @@ public partial class MainViewModel : ObservableObject
         IsConnected = _auth.IsConnected;
         var account = _auth.CurrentAccount;
         AccountStatusText = IsConnected
-            ? $"Connecté : {account?.Email ?? "(compte Google)"}"
-            : "Aucun compte connecté";
+            ? Loc.TF("Account_Connected", account?.Email ?? Loc.T("Account_Generic"))
+            : Loc.T("Account_None");
     }
 
     private void RefreshCounters()
@@ -480,21 +484,12 @@ public partial class MainViewModel : ObservableObject
 
         var done = UploadedCount + SkippedCount;
         GlobalProgress = TotalFiles > 0 ? done * 100.0 / TotalFiles : 0;
-        GlobalProgressText = $"{GlobalProgress:F1} % ({UploadedCount} uploadés / {TotalFiles} fichiers)";
+        GlobalProgressText = Loc.TF("Progress_GlobalText", GlobalProgress, UploadedCount, TotalFiles);
     }
 
     private void RefreshDetails()
     {
-        UploadStatus? filter = SelectedStatusFilter switch
-        {
-            "En attente" => UploadStatus.Queued,
-            "Uploadés" => UploadStatus.Uploaded,
-            "Erreurs" => UploadStatus.Failed,
-            "Ignorés (doublon local)" => UploadStatus.SkippedDuplicateLocal,
-            "Ignorés (déjà uploadé)" => UploadStatus.SkippedDuplicateRemoteAppCreated,
-            "Ignorés (incompatible)" => UploadStatus.SkippedIncompatible,
-            _ => null
-        };
+        var filter = SelectedFilter?.Status;
         FileRows.Clear();
         foreach (var f in _files.List(filter, limit: 2000, offset: 0))
         {
@@ -503,14 +498,14 @@ public partial class MainViewModel : ObservableObject
                 FileName = f.FileName,
                 LocalPath = f.LocalPath,
                 SizeText = FormatBytes(f.FileSize),
-                StatusText = StatusFr(f.UploadStatus),
+                StatusText = StatusDisplay(f.UploadStatus),
                 ErrorText = f.LastError ?? "",
                 UploadedText = f.UploadedAt?.ToLocalTime().ToString("g") ?? ""
             });
         }
     }
 
-    partial void OnSelectedStatusFilterChanged(string value) => RefreshDetails();
+    partial void OnSelectedFilterChanged(FilterOption value) => RefreshDetails();
 
     private void RefreshHistory()
     {
@@ -525,7 +520,12 @@ public partial class MainViewModel : ObservableObject
                 FileCount = b.FileCount,
                 SuccessCount = b.SuccessCount,
                 FailureCount = b.FailureCount,
-                Status = b.Status == "completed" ? "Terminé" : b.Status == "stopped" ? "Arrêté" : "En cours"
+                Status = b.Status switch
+                {
+                    "completed" => Loc.T("BatchStatus_Completed"),
+                    "stopped" => Loc.T("BatchStatus_Stopped"),
+                    _ => Loc.T("BatchStatus_Running")
+                }
             });
         }
     }
@@ -540,7 +540,7 @@ public partial class MainViewModel : ObservableObject
         {
             CurrentFileName = p.FileName;
             CurrentFileProgress = p.TotalBytes > 0 ? p.BytesSent * 100.0 / p.TotalBytes : 0;
-            CurrentFileText = $"{p.FileName} — {FormatBytes(p.BytesSent)} / {FormatBytes(p.TotalBytes)}";
+            CurrentFileText = Loc.TF("Progress_CurrentFile", p.FileName, FormatBytes(p.BytesSent), FormatBytes(p.TotalBytes));
         });
     }
 
@@ -553,19 +553,19 @@ public partial class MainViewModel : ObservableObject
             return;
         }
         var rate = _upload.BytesPerSecond;
-        ThroughputText = rate > 0 ? $"Débit : {FormatBytes((long)rate)}/s" : "";
+        ThroughputText = rate > 0 ? Loc.TF("Progress_Throughput", FormatBytes((long)rate)) : "";
         var eta = _upload.EstimateRemaining(_settings.MaxRetries);
-        EtaText = eta is { } t ? $"Temps restant estimé : {FormatDuration(t)}" : "";
+        EtaText = eta is { } t ? Loc.TF("Progress_Eta", FormatDuration(t)) : "";
     }
 
     private void UpdateStateText()
     {
-        StateText = IsScanning ? "Scan en cours" : ServiceState switch
+        StateText = IsScanning ? Loc.T("State_Scanning") : ServiceState switch
         {
-            UploadServiceState.Running => "Upload en cours",
-            UploadServiceState.Paused => "Upload en pause",
-            UploadServiceState.Stopping => "Arrêt en cours...",
-            _ => "Prêt"
+            UploadServiceState.Running => Loc.T("State_Uploading"),
+            UploadServiceState.Paused => Loc.T("State_Paused"),
+            UploadServiceState.Stopping => Loc.T("State_Stopping"),
+            _ => Loc.T("State_Ready")
         };
     }
 
@@ -591,17 +591,17 @@ public partial class MainViewModel : ObservableObject
         else _dispatcher.BeginInvoke(action);
     }
 
-    public static string StatusFr(UploadStatus status) => status switch
+    public static string StatusDisplay(UploadStatus status) => status switch
     {
-        UploadStatus.Discovered => "Détecté",
-        UploadStatus.Queued => "En attente",
-        UploadStatus.Uploading => "Upload en cours",
-        UploadStatus.Uploaded => "Uploadé",
-        UploadStatus.SkippedDuplicateLocal => "Ignoré (doublon local)",
-        UploadStatus.SkippedDuplicateRemoteAppCreated => "Ignoré (déjà uploadé)",
-        UploadStatus.SkippedIncompatible => "Ignoré (incompatible)",
-        UploadStatus.Failed => "Erreur",
-        UploadStatus.Paused => "En pause",
+        UploadStatus.Discovered => Loc.T("Status_Discovered"),
+        UploadStatus.Queued => Loc.T("Status_Queued"),
+        UploadStatus.Uploading => Loc.T("Status_Uploading"),
+        UploadStatus.Uploaded => Loc.T("Status_Uploaded"),
+        UploadStatus.SkippedDuplicateLocal => Loc.T("Status_SkippedDuplicateLocal"),
+        UploadStatus.SkippedDuplicateRemoteAppCreated => Loc.T("Status_SkippedDuplicateRemote"),
+        UploadStatus.SkippedIncompatible => Loc.T("Status_SkippedIncompatible"),
+        UploadStatus.Failed => Loc.T("Status_Failed"),
+        UploadStatus.Paused => Loc.T("Status_Paused"),
         _ => status.ToString()
     };
 
@@ -609,17 +609,17 @@ public partial class MainViewModel : ObservableObject
     {
         return bytes switch
         {
-            >= 1024L * 1024 * 1024 => $"{bytes / (1024.0 * 1024 * 1024):F2} Go",
-            >= 1024L * 1024 => $"{bytes / (1024.0 * 1024):F1} Mo",
-            >= 1024L => $"{bytes / 1024.0:F0} Ko",
-            _ => $"{bytes} o"
+            >= 1024L * 1024 * 1024 => $"{(bytes / (1024.0 * 1024 * 1024)).ToString("F2", Loc.Culture)} {Loc.T("Unit_GB")}",
+            >= 1024L * 1024 => $"{(bytes / (1024.0 * 1024)).ToString("F1", Loc.Culture)} {Loc.T("Unit_MB")}",
+            >= 1024L => $"{(bytes / 1024.0).ToString("F0", Loc.Culture)} {Loc.T("Unit_KB")}",
+            _ => $"{bytes} {Loc.T("Unit_B")}"
         };
     }
 
     public static string FormatDuration(TimeSpan t)
     {
-        if (t.TotalHours >= 1) return $"{(int)t.TotalHours} h {t.Minutes:D2} min";
-        if (t.TotalMinutes >= 1) return $"{t.Minutes} min {t.Seconds:D2} s";
-        return $"{t.Seconds} s";
+        if (t.TotalHours >= 1) return Loc.TF("Duration_HoursMinutes", (int)t.TotalHours, t.Minutes);
+        if (t.TotalMinutes >= 1) return Loc.TF("Duration_MinutesSeconds", t.Minutes, t.Seconds);
+        return Loc.TF("Duration_Seconds", t.Seconds);
     }
 }

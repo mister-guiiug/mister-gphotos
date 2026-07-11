@@ -3,6 +3,7 @@ using System.IO;
 using System.Windows.Controls;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using GPhotosUploader.Core.Resources;
 using GPhotosUploader.Core.Services;
 using Microsoft.Win32;
 
@@ -14,7 +15,7 @@ public class WizardStep
     public string Title { get; init; } = "";
     public string Body { get; init; } = "";
     public string? LinkUrl { get; init; }
-    public string LinkLabel { get; init; } = "Ouvrir cette étape dans le navigateur";
+    public string LinkLabel => Loc.T("Wizard_OpenLink");
     public bool IsFinal { get; init; }
     public bool HasLink => LinkUrl is not null;
 }
@@ -64,7 +65,7 @@ public partial class OAuthWizardViewModel : ObservableObject
     public RelayCommand CancelCommand { get; }
 
     public WizardStep CurrentStep => Steps[CurrentIndex];
-    public string ProgressText => $"Étape {CurrentIndex + 1} sur {Steps.Count} — {CurrentStep.Title}";
+    public string ProgressText => Loc.TF("Wizard_ProgressText", CurrentIndex + 1, Steps.Count, CurrentStep.Title);
     public int ProgressValue => CurrentIndex + 1;
     public int ProgressMaximum => Steps.Count;
     public bool IsFinalStep => CurrentStep.IsFinal;
@@ -94,8 +95,8 @@ public partial class OAuthWizardViewModel : ObservableObject
             Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Downloads");
         var dialog = new OpenFileDialog
         {
-            Title = "Choisir le fichier client_secret_….json téléchargé",
-            Filter = "Fichier client secret (client_secret*.json)|client_secret*.json|Fichiers JSON (*.json)|*.json|Tous les fichiers (*.*)|*.*"
+            Title = Loc.T("Dialog_ImportJson_Title"),
+            Filter = Loc.T("Dialog_ImportJson_Filter")
         };
         if (Directory.Exists(downloads))
             dialog.InitialDirectory = downloads;
@@ -106,7 +107,7 @@ public partial class OAuthWizardViewModel : ObservableObject
             var creds = OAuthClientConfig.ParseClientSecretFile(dialog.FileName);
             ClientId = creds.ClientId;
             _importedSecret = creds.ClientSecret;
-            ImportStatus = "Fichier importé : Client ID et Client Secret chargés. Vous pouvez cliquer sur « Terminer ».";
+            ImportStatus = Loc.T("Wizard_ImportedStatus");
             ValidationMessage = "";
         }
         catch (Exception ex) when (ex is FormatException or IOException or UnauthorizedAccessException
@@ -124,16 +125,12 @@ public partial class OAuthWizardViewModel : ObservableObject
 
         if (!OAuthClientConfig.IsValidClientId(ClientId))
         {
-            ValidationMessage =
-                $"Le Client ID est vide ou invalide : il doit se terminer par « {OAuthClientConfig.ClientIdSuffix} ». " +
-                "Importez le fichier JSON ou recopiez la valeur depuis la console.";
+            ValidationMessage = Loc.TF("Wizard_Validation_ClientId", OAuthClientConfig.ClientIdSuffix);
             return;
         }
         if (!OAuthClientConfig.IsPlausibleClientSecret(secret))
         {
-            ValidationMessage =
-                "Le Client Secret est vide ou invalide. Importez le fichier JSON téléchargé, " +
-                "ou collez la valeur affichée à la création du client (elle commence en général par « GOCSPX- »).";
+            ValidationMessage = Loc.T("Wizard_Validation_ClientSecret");
             return;
         }
 
@@ -143,73 +140,27 @@ public partial class OAuthWizardViewModel : ObservableObject
 
     private static IReadOnlyList<WizardStep> BuildSteps() => new List<WizardStep>
     {
+        new() { Title = Loc.T("Wizard_Step1_Title"), Body = Loc.T("Wizard_Step1_Body") },
         new()
         {
-            Title = "Pourquoi cette étape ?",
-            Body =
-                "Google impose que chaque application accédant à Google Photos utilise son propre « client OAuth », " +
-                "créé dans votre console Google Cloud (gratuit, une seule fois, environ 15 minutes).\n\n" +
-                "• Aucun mot de passe Google ne sera jamais saisi dans cette application : la connexion se fera dans votre navigateur.\n" +
-                "• Google ne permet pas d'automatiser entièrement cette création (aucune API publique, ni gcloud, ni Terraform, " +
-                "ne peut créer un client « Application de bureau ») : cet assistant ouvre les bonnes pages et vous indique quoi cliquer.\n" +
-                "• À la fin, vous importerez le fichier JSON téléchargé — ou collerez le Client ID et le Client Secret.\n\n" +
-                "Astuce : gardez cette fenêtre ouverte à côté de votre navigateur."
-        },
-        new()
-        {
-            Title = "Créer un projet Google Cloud",
-            Body =
-                "1. Cliquez sur le bouton ci-dessous pour ouvrir la page de création de projet.\n" +
-                "2. Connectez-vous avec votre compte Google si la console vous le demande.\n" +
-                "3. Nom du projet : par exemple « Photos Uploader » (le nom est libre).\n" +
-                "4. Cliquez sur « Créer », puis attendez la notification de fin de création.\n" +
-                "5. Vérifiez, dans le bandeau en haut de la console, que ce nouveau projet est bien sélectionné.",
+            Title = Loc.T("Wizard_Step2_Title"), Body = Loc.T("Wizard_Step2_Body"),
             LinkUrl = "https://console.cloud.google.com/projectcreate"
         },
         new()
         {
-            Title = "Activer l'API Photos Library",
-            Body =
-                "1. Ouvrez la page de l'API « Photos Library API » avec le bouton ci-dessous.\n" +
-                "2. Vérifiez que votre projet est sélectionné en haut de la page.\n" +
-                "3. Cliquez sur « Activer ».\n\n" +
-                "Si le bouton affiche « Gérer » au lieu d'« Activer », l'API est déjà active : passez à l'étape suivante.",
+            Title = Loc.T("Wizard_Step3_Title"), Body = Loc.T("Wizard_Step3_Body"),
             LinkUrl = "https://console.cloud.google.com/apis/library/photoslibrary.googleapis.com"
         },
         new()
         {
-            Title = "Configurer l'écran de consentement",
-            Body =
-                "1. Ouvrez l'écran de consentement OAuth avec le bouton ci-dessous.\n" +
-                "2. Type d'utilisateurs : choisissez « Externes », puis « Créer ».\n" +
-                "3. Renseignez le nom de l'application (ex. « Photos Uploader ») et votre adresse e-mail " +
-                "(assistance utilisateur et contact développeur) ; laissez le reste vide et enregistrez jusqu'à la fin.\n" +
-                "4. Dans la section « Utilisateurs test » (ou « Audience »), cliquez sur « Ajouter des utilisateurs » " +
-                "et ajoutez votre propre adresse Google.\n\n" +
-                "Important : tant que l'application Google Cloud reste en mode « Test », la connexion expire tous les 7 jours " +
-                "(il suffit alors de se reconnecter). Vous pourrez plus tard cliquer sur « Publier l'application » pour lever " +
-                "cette limite — voir docs/google-cloud-setup.md.",
+            Title = Loc.T("Wizard_Step4_Title"), Body = Loc.T("Wizard_Step4_Body"),
             LinkUrl = "https://console.cloud.google.com/apis/credentials/consent"
         },
         new()
         {
-            Title = "Créer le client OAuth « Application de bureau »",
-            Body =
-                "1. Ouvrez la page de création d'identifiants avec le bouton ci-dessous.\n" +
-                "2. Type d'application : choisissez « Application de bureau ».\n" +
-                "3. Nom : par exemple « Photos Uploader Desktop », puis cliquez sur « Créer ».\n" +
-                "4. Une fenêtre affiche votre Client ID et votre Client Secret : cliquez sur « Télécharger le JSON » " +
-                "(recommandé), ou copiez soigneusement les deux valeurs.\n\n" +
-                "Le fichier téléchargé s'appelle « client_secret_….json » et se trouve en général dans votre dossier Téléchargements.",
+            Title = Loc.T("Wizard_Step5_Title"), Body = Loc.T("Wizard_Step5_Body"),
             LinkUrl = "https://console.cloud.google.com/apis/credentials/oauthclient"
         },
-        new()
-        {
-            Title = "Renseigner les identifiants",
-            Body =
-                "Importez le fichier JSON téléchargé à l'étape précédente (recommandé), ou collez les valeurs manuellement.\n\n" +
-                "Le Client Secret sera stocké dans le Gestionnaire d'identifiants Windows, jamais en clair sur le disque.",
-            IsFinal = true
-        }
+        new() { Title = Loc.T("Wizard_Step6_Title"), Body = Loc.T("Wizard_Step6_Body"), IsFinal = true },
     };
 }

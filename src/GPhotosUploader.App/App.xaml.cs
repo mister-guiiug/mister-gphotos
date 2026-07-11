@@ -1,8 +1,10 @@
+using System.Globalization;
 using System.IO;
 using System.Net.Http;
 using System.Windows;
 using GPhotosUploader.App.ViewModels;
 using GPhotosUploader.Core.Data;
+using GPhotosUploader.Core.Resources;
 using GPhotosUploader.Core.Services;
 
 namespace GPhotosUploader.App;
@@ -10,6 +12,9 @@ namespace GPhotosUploader.App;
 /// <summary>Racine de composition : instancie la base, les dépôts et les services.</summary>
 public partial class App : Application
 {
+    /// <summary>Nom de marque du produit (identique dans toutes les langues).</summary>
+    public const string ProductName = "Google Photos Local Uploader";
+
     private Logger? _logger;
     private Mutex? _singleInstanceMutex;
 
@@ -17,14 +22,20 @@ public partial class App : Application
     {
         base.OnStartup(e);
 
+        // Langue de l'interface = langue d'affichage de l'OS. Fixée pour tous les
+        // threads (les workers de scan/upload doivent produire les mêmes traductions).
+        var uiCulture = CultureInfo.CurrentUICulture;
+        Loc.Culture = uiCulture;
+        CultureInfo.DefaultThreadCurrentUICulture = uiCulture;
+
         // Instance unique : deux processus se disputeraient la même base SQLite et
         // RecoverAfterRestart requalifierait les fichiers en cours d'upload de l'autre.
         _singleInstanceMutex = new Mutex(true, @"Global\GooglePhotosLocalUploader", out bool createdNew);
         if (!createdNew)
         {
             MessageBox.Show(
-                "Google Photos Local Uploader est déjà en cours d'exécution.",
-                "Google Photos Local Uploader", MessageBoxButton.OK, MessageBoxImage.Information);
+                Loc.T("App_AlreadyRunning"),
+                ProductName, MessageBoxButton.OK, MessageBoxImage.Information);
             Shutdown();
             return;
         }
@@ -53,14 +64,14 @@ public partial class App : Application
 
         DispatcherUnhandledException += (_, args) =>
         {
-            _logger?.Error("App", $"Erreur non gérée : {args.Exception.Message}");
+            _logger?.Error("App", Loc.TF("Log_UnhandledError", args.Exception.Message));
             MessageBox.Show(
-                $"Une erreur inattendue est survenue :\n{args.Exception.Message}\n\nConsultez le journal pour plus de détails.",
-                "Google Photos Local Uploader", MessageBoxButton.OK, MessageBoxImage.Error);
+                Loc.TF("App_UnexpectedError", args.Exception.Message),
+                ProductName, MessageBoxButton.OK, MessageBoxImage.Error);
             args.Handled = true;
         };
 
         window.Show();
-        _logger.Info("App", "Application démarrée.");
+        _logger.Info("App", Loc.T("App_Started"));
     }
 }

@@ -1,101 +1,103 @@
-# Procédure de build Windows
+# Windows Build Procedure
 
-Ce document explique comment compiler, tester et publier **Google Photos Local Uploader**
-sur Windows 10 ou 11, depuis les sources. Les sections « Prérequis » et « Récupérer les
-sources » sont accessibles à tous ; les sections suivantes (compilation, artefacts,
-publication, dépannage) s'adressent à un développeur ou à un utilisateur à l'aise avec la
-ligne de commande.
+This document explains how to compile, test, and publish **Google Photos Local Uploader**
+on Windows 10 or 11, from source. The "Prerequisites" and "Getting the sources" sections
+are accessible to everyone; the following sections (compilation, artifacts, publishing,
+troubleshooting) are intended for a developer or a user comfortable with the command line.
 
-> **Important :** l'application est une application WPF ciblant `net8.0-windows`.
-> La compilation ne fonctionne **que sur Windows** — il n'est pas possible de la builder
-> sous Linux ou macOS.
+> **Important:** the application is a WPF application targeting `net8.0-windows`.
+> Compilation works **only on Windows** — it is not possible to build it on
+> Linux or macOS.
 
 ---
 
-## 1. Prérequis
+## 1. Prerequisites
 
-| Outil | Version | Obligatoire ? | Téléchargement |
+| Tool | Version | Required? | Download |
 |---|---|---|---|
-| SDK .NET | **8.x** (SDK, pas seulement le runtime) | Oui | <https://dotnet.microsoft.com/download/dotnet/8.0> |
-| Windows | 10 ou 11, x64 | Oui | — |
-| PowerShell | 5.1 (inclus dans Windows) ou PowerShell 7 | Oui (pour les scripts `build/`) | — |
-| Git | Récente | Non (un ZIP des sources suffit) | <https://git-scm.com/download/win> |
-| Inno Setup | **6** | Non (uniquement pour fabriquer l'installeur) | <https://jrsoftware.org/isdl.php> |
+| .NET SDK | **8.x** (SDK, not just the runtime) | Yes | <https://dotnet.microsoft.com/download/dotnet/8.0> |
+| Windows | 10 or 11, x64 | Yes | — |
+| PowerShell | 5.1 (included with Windows) or PowerShell 7 | Yes (for the `build/` scripts) | — |
+| Git | Recent | No (a source ZIP is enough) | <https://git-scm.com/download/win> |
+| Inno Setup | **6** | No (only to build the installer) | <https://jrsoftware.org/isdl.php> |
 
-Pour vérifier que le SDK .NET 8 est bien installé, ouvrez un terminal (PowerShell) et tapez :
+To verify that the .NET 8 SDK is installed, open a terminal (PowerShell) and type:
 
 ```powershell
 dotnet --list-sdks
 ```
 
-Vous devez voir au moins une ligne commençant par `8.` (par exemple `8.0.404`). Si la
-commande `dotnet` n'est pas reconnue, voyez la section [Dépannage](#7-dépannage-courant).
+You should see at least one line starting with `8.` (for example `8.0.404`). If the
+`dotnet` command is not recognized, see the [Troubleshooting](#7-common-troubleshooting)
+section.
 
-Aucun autre outil n'est nécessaire : Visual Studio n'est **pas** requis (le SDK .NET
-suffit), et les dépendances NuGet (`Microsoft.Data.Sqlite`, `CommunityToolkit.Mvvm`,
-`xunit`, etc.) sont restaurées automatiquement depuis nuget.org lors du build. Le projet
-n'utilise **aucun SDK Google** : les appels à l'API Google Photos sont faits en HTTP
-direct, car le client .NET officiel PhotosLibrary est déprécié.
+No other tool is required: Visual Studio is **not** needed (the .NET SDK is
+sufficient), and the NuGet dependencies (`Microsoft.Data.Sqlite`, `CommunityToolkit.Mvvm`,
+`xunit`, etc.) are restored automatically from nuget.org during the build. The project
+uses **no Google SDK**: calls to the Google Photos API are made in direct HTTP, because
+the official .NET PhotosLibrary client is deprecated.
 
 ---
 
-## 2. Récupérer les sources
+## 2. Getting the sources
 
-Deux possibilités :
+Two options:
 
-**Avec Git :**
+**With Git:**
 
 ```powershell
 git clone <URL-du-dépôt> mister-tof-sync-desktop
 cd mister-tof-sync-desktop
 ```
 
-**Sans Git :** téléchargez l'archive ZIP des sources depuis la page du dépôt, puis
-extrayez-la dans un dossier de votre choix (par exemple `C:\Src\mister-tof-sync-desktop`).
+**Without Git:** download the source ZIP archive from the repository page, then extract
+it into a folder of your choice (for example `C:\Src\mister-tof-sync-desktop`).
 
-La racine du projet doit contenir :
+The project root must contain:
 
 ```
-GooglePhotosUploader.sln        Solution .NET (3 projets)
-src/GPhotosUploader.Core/       Bibliothèque : modèles, base SQLite, services (net8.0)
-src/GPhotosUploader.App/        Application WPF (net8.0-windows)
-src/GPhotosUploader.Tests/      Tests xUnit (net8.0) — 54 tests
-build/build.ps1                 Script : restauration + compilation + tests
-build/publish.ps1               Script : publication auto-contenue win-x64
-installer/setup.iss             Script Inno Setup (installeur Windows)
+GooglePhotosUploader.sln        .NET solution (3 projects)
+src/GPhotosUploader.Core/       Library: models, SQLite database, services (net8.0)
+src/GPhotosUploader.Core/Resources/  Localization resources
+src/GPhotosUploader.App/        WPF application (net8.0-windows)
+src/GPhotosUploader.App/Localization/  Localization
+src/GPhotosUploader.Tests/      xUnit tests (net8.0) — 59 tests
+build/build.ps1                 Script: restore + compile + tests
+build/publish.ps1               Script: self-contained win-x64 publish
+installer/setup.iss             Inno Setup script (Windows installer)
 docs/                           Documentation
 ```
 
 ---
 
-## 3. Build et tests avec `build/build.ps1` (méthode recommandée)
+## 3. Build and tests with `build/build.ps1` (recommended method)
 
-Depuis la racine du projet, dans PowerShell :
+From the project root, in PowerShell:
 
 ```powershell
 .\build\build.ps1
 ```
 
-Le script effectue, dans l'ordre, et **s'arrête à la première erreur** (il propage le code
-de sortie de `dotnet`) :
+The script performs, in order, and **stops at the first error** (it propagates the exit
+code from `dotnet`):
 
-1. `dotnet restore GooglePhotosUploader.sln` — restauration des packages NuGet
-   (affiché : `=== Restauration des packages ===`) ;
+1. `dotnet restore GooglePhotosUploader.sln` — restores the NuGet packages
+   (displays: `=== Restoring packages ===`);
 2. `dotnet build GooglePhotosUploader.sln -c Release --no-restore` — compilation
-   (affiché : `=== Compilation (Release) ===`) ;
+   (displays: `=== Building (Release) ===`);
 3. `dotnet test src\GPhotosUploader.Tests\GPhotosUploader.Tests.csproj -c Release --no-build`
-   — exécution des tests (affiché : `=== Tests ===`).
+   — runs the tests (displays: `=== Tests ===`).
 
-En cas de succès, le script affiche `Build et tests OK.` en vert.
+On success, the script displays `Build and tests OK.` in green.
 
-Le script accepte un paramètre optionnel `-Configuration` (valeur par défaut : `Release`) :
+The script accepts an optional `-Configuration` parameter (default value: `Release`):
 
 ```powershell
 .\build\build.ps1 -Configuration Debug
 ```
 
-> **Si Windows bloque l'exécution du script** (message « l'exécution de scripts est
-> désactivée sur ce système »), lancez-le ainsi :
+> **If Windows blocks script execution** (message "running scripts is disabled on this
+> system"), run it as follows:
 >
 > ```powershell
 > powershell -ExecutionPolicy Bypass -File .\build\build.ps1
@@ -103,9 +105,9 @@ Le script accepte un paramètre optionnel `-Configuration` (valeur par défaut :
 
 ---
 
-## 4. Build et tests manuels (sans script)
+## 4. Manual build and tests (without the script)
 
-Équivalent commande par commande, depuis la racine :
+The command-by-command equivalent, from the root:
 
 ```powershell
 dotnet restore GooglePhotosUploader.sln
@@ -113,7 +115,7 @@ dotnet build GooglePhotosUploader.sln -c Release --no-restore
 dotnet test src\GPhotosUploader.Tests\GPhotosUploader.Tests.csproj -c Release --no-build
 ```
 
-Pour lancer l'application directement depuis les sources (utile en développement) :
+To run the application directly from source (useful during development):
 
 ```powershell
 dotnet run --project src\GPhotosUploader.App\GPhotosUploader.App.csproj -c Debug
@@ -121,45 +123,45 @@ dotnet run --project src\GPhotosUploader.App\GPhotosUploader.App.csproj -c Debug
 
 ---
 
-## 5. Structure des artefacts de build
+## 5. Build artifact structure
 
-Après un `dotnet build -c Release`, les binaires sont produits sous chaque projet :
+After a `dotnet build -c Release`, the binaries are produced under each project:
 
 ```
 src/GPhotosUploader.Core/bin/Release/net8.0/
     GPhotosUploader.Core.dll
 
 src/GPhotosUploader.App/bin/Release/net8.0-windows/
-    GooglePhotosLocalUploader.exe      <- exécutable WPF (AssemblyName du projet App)
+    GooglePhotosLocalUploader.exe      <- WPF executable (AssemblyName of the App project)
     GooglePhotosLocalUploader.dll
     GPhotosUploader.Core.dll
     CommunityToolkit.Mvvm.dll
-    Microsoft.Data.Sqlite.dll (+ dépendances SQLitePCLRaw)
+    Microsoft.Data.Sqlite.dll (+ SQLitePCLRaw dependencies)
     ...
 
 src/GPhotosUploader.Tests/bin/Release/net8.0/
     GPhotosUploader.Tests.dll
 ```
 
-Notez que l'exécutable s'appelle **`GooglePhotosLocalUploader.exe`** (et non
-« GPhotosUploader.App.exe ») : c'est l'`AssemblyName` défini dans
+Note that the executable is named **`GooglePhotosLocalUploader.exe`** (and not
+"GPhotosUploader.App.exe"): this is the `AssemblyName` defined in
 `src/GPhotosUploader.App/GPhotosUploader.App.csproj`.
 
-L'exécutable produit par `dotnet build` est **framework-dependent** : il nécessite que le
-runtime .NET 8 (Desktop) soit installé sur la machine. Pour un exécutable qui fonctionne
-sans installation préalable de .NET, utilisez la publication auto-contenue ci-dessous.
+The executable produced by `dotnet build` is **framework-dependent**: it requires the
+.NET 8 (Desktop) runtime to be installed on the machine. For an executable that works
+without a prior .NET installation, use the self-contained publish below.
 
 ---
 
-## 6. Publication auto-contenue avec `build/publish.ps1`
+## 6. Self-contained publish with `build/publish.ps1`
 
-Depuis la racine du projet :
+From the project root:
 
 ```powershell
 .\build\publish.ps1
 ```
 
-Le script exécute :
+The script runs:
 
 ```powershell
 dotnet publish src\GPhotosUploader.App\GPhotosUploader.App.csproj `
@@ -170,67 +172,67 @@ dotnet publish src\GPhotosUploader.App\GPhotosUploader.App.csproj `
     -o dist\win-x64
 ```
 
-Caractéristiques :
+Characteristics:
 
-- **Auto-contenu** (`--self-contained true`) : le runtime .NET 8 est embarqué. La machine
-  cible n'a **rien à installer** au préalable.
-- **Multi-fichiers** (`PublishSingleFile=false`) : le dossier contient l'exécutable et ses
-  DLL, ce qui est le format attendu par le script d'installeur.
-- Paramètre optionnel `-Runtime` (valeur par défaut : `win-x64`) ; le dossier de sortie
-  suit le runtime choisi (`dist\<runtime>`).
+- **Self-contained** (`--self-contained true`): the .NET 8 runtime is embedded. The
+  target machine has **nothing to install** beforehand.
+- **Multi-file** (`PublishSingleFile=false`): the folder contains the executable and its
+  DLLs, which is the format expected by the installer script.
+- Optional `-Runtime` parameter (default value: `win-x64`); the output folder follows the
+  chosen runtime (`dist\<runtime>`).
 
-**Où trouver l'exécutable :** à la fin, le script affiche le chemin exact :
+**Where to find the executable:** at the end, the script displays the exact path:
 
 ```
-Publication terminée : <racine>\dist\win-x64
-Exécutable : <racine>\dist\win-x64\GooglePhotosLocalUploader.exe
+Publish complete: <root>\dist\win-x64
+Executable: <root>\dist\win-x64\GooglePhotosLocalUploader.exe
 ```
 
-Vous pouvez lancer `dist\win-x64\GooglePhotosLocalUploader.exe` directement, ou copier
-tout le dossier `dist\win-x64\` sur une autre machine Windows 10/11 x64.
+You can run `dist\win-x64\GooglePhotosLocalUploader.exe` directly, or copy the entire
+`dist\win-x64\` folder to another Windows 10/11 x64 machine.
 
-### Fabriquer l'installeur Windows (optionnel)
+### Building the Windows installer (optional)
 
-Prérequis : Inno Setup 6 installé, et la publication (`.\build\publish.ps1`) déjà faite —
-l'installeur empaquette le contenu de `dist\win-x64\`. Puis :
+Prerequisites: Inno Setup 6 installed, and the publish (`.\build\publish.ps1`) already
+done — the installer packages the contents of `dist\win-x64\`. Then:
 
 ```powershell
 iscc installer\setup.iss
 ```
 
-L'installeur est écrit dans `dist\installer\` sous le nom
-`mister-gphotos-Setup-1.0.0.exe`. Il s'installe **sans droits administrateur**
-(`PrivilegesRequired=lowest`) et est en français.
+The installer is written to `dist\installer\` under the name
+`mister-gphotos-Setup-1.0.0.exe`. It installs **without administrator rights**
+(`PrivilegesRequired=lowest`) and is in French.
 
-À la désinstallation, les données locales (`%APPDATA%\GooglePhotosLocalUploader`, qui
-contient `app.db` et `logs\`) et les secrets du Gestionnaire d'identifiants Windows ne
-sont **volontairement pas supprimés** : utilisez le bouton « Supprimer les données
-locales » dans l'application avant de désinstaller si vous voulez tout effacer.
+On uninstall, the local data (`%APPDATA%\GooglePhotosLocalUploader`, which contains
+`app.db` and `logs\`) and the secrets in the Windows Credential Manager are
+**intentionally not removed**: use the "Delete local data" button in the application
+before uninstalling if you want to erase everything.
 
 ---
 
-## 7. Dépannage courant
+## 7. Common troubleshooting
 
-### « dotnet » n'est pas reconnu comme commande
+### "dotnet" is not recognized as a command
 
-- Le SDK .NET 8 n'est pas installé : téléchargez-le sur
-  <https://dotnet.microsoft.com/download/dotnet/8.0> (choisissez bien **SDK**, pas
-  « Runtime » seul, et l'installeur **x64**).
-- Si vous venez de l'installer, **fermez puis rouvrez** le terminal (le `PATH` n'est mis à
-  jour que pour les nouveaux terminaux).
-- Vérifiez ensuite avec `dotnet --list-sdks` qu'une version `8.x` apparaît.
+- The .NET 8 SDK is not installed: download it from
+  <https://dotnet.microsoft.com/download/dotnet/8.0> (be sure to choose the **SDK**, not
+  the "Runtime" only, and the **x64** installer).
+- If you just installed it, **close and reopen** the terminal (the `PATH` is only updated
+  for new terminals).
+- Then verify with `dotnet --list-sdks` that an `8.x` version appears.
 
-### Le SDK est installé mais la compilation échoue (NETSDK1045 ou similaire)
+### The SDK is installed but compilation fails (NETSDK1045 or similar)
 
-Vous avez probablement uniquement un SDK plus ancien (6.x, 7.x). Le projet cible
-`net8.0` / `net8.0-windows` : installez le SDK **8.x** en plus (plusieurs SDK peuvent
-cohabiter sans conflit).
+You probably only have an older SDK (6.x, 7.x). The project targets
+`net8.0` / `net8.0-windows`: install the **8.x** SDK in addition (multiple SDKs can
+coexist without conflict).
 
-### La restauration NuGet échoue derrière un proxy d'entreprise (erreurs NU1301, timeouts)
+### NuGet restore fails behind a corporate proxy (NU1301 errors, timeouts)
 
-`dotnet restore` doit pouvoir joindre `https://api.nuget.org`. Derrière un proxy :
+`dotnet restore` must be able to reach `https://api.nuget.org`. Behind a proxy:
 
-1. **Variables d'environnement** (le plus simple, valable pour la session en cours) :
+1. **Environment variables** (the simplest, valid for the current session):
 
    ```powershell
    $env:HTTP_PROXY  = "http://proxy.exemple.local:8080"
@@ -238,72 +240,72 @@ cohabiter sans conflit).
    .\build\build.ps1
    ```
 
-2. **Configuration NuGet persistante** : ajoutez dans
-   `%APPDATA%\NuGet\NuGet.Config` une section :
+2. **Persistent NuGet configuration**: add a section in
+   `%APPDATA%\NuGet\NuGet.Config`:
 
    ```xml
    <configuration>
      <config>
-       <add key="http_proxy" value="http://proxy.exemple.local:8080" />
-       <!-- si le proxy exige une authentification : -->
-       <add key="http_proxy.user" value="DOMAINE\utilisateur" />
+       <add key="http_proxy" value="http://proxy.example.local:8080" />
+       <!-- if the proxy requires authentication: -->
+       <add key="http_proxy.user" value="DOMAIN\user" />
      </config>
    </configuration>
    ```
 
-3. Si votre proxy **inspecte le TLS** (certificat d'entreprise), le certificat racine de
-   l'entreprise doit être présent dans le magasin de certificats Windows, sinon la
-   connexion à nuget.org sera rejetée.
+3. If your proxy **inspects TLS** (corporate certificate), the company's root certificate
+   must be present in the Windows certificate store, otherwise the connection to
+   nuget.org will be rejected.
 
-4. Si votre entreprise fournit un miroir NuGet interne (Artifactory, Nexus…), déclarez-le
-   comme source : `dotnet nuget add source <URL-du-miroir> -n interne`.
+4. If your company provides an internal NuGet mirror (Artifactory, Nexus…), declare it as
+   a source: `dotnet nuget add source <URL-du-miroir> -n interne`.
 
-### « L'exécution de scripts est désactivée sur ce système »
+### "Running scripts is disabled on this system"
 
-La stratégie d'exécution PowerShell bloque les `.ps1`. Contournement ponctuel, sans
-modifier la configuration de la machine :
+The PowerShell execution policy blocks `.ps1` files. One-off workaround, without modifying
+the machine's configuration:
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\build\build.ps1
 ```
 
-### Des tests échouent
+### Some tests fail
 
-La suite (54 tests xUnit : `CoreLogicTests`, `DatabaseTests`, `FileScannerTests`, `OAuthClientConfigTests`) est
-attendue **entièrement verte** et n'a besoin d'aucun accès réseau ni compte Google. Un
-échec signale en général un SDK inadapté ou une modification locale des sources. Relancez
-proprement :
+The suite (59 xUnit tests: `CoreLogicTests`, `DatabaseTests`, `FileScannerTests`,
+`OAuthClientConfigTests`, `LocalizationTests`) is expected to be **entirely green** and
+needs no network access or Google account. A failure generally indicates an unsuitable SDK
+or a local modification of the sources. Restart cleanly:
 
 ```powershell
 dotnet clean GooglePhotosUploader.sln
 .\build\build.ps1
 ```
 
-### `iscc` n'est pas reconnu
+### `iscc` is not recognized
 
-Inno Setup 6 n'est pas installé, ou son dossier (par défaut
-`C:\Program Files (x86)\Inno Setup 6`) n'est pas dans le `PATH`. Vous pouvez appeler le
-compilateur par son chemin complet :
+Inno Setup 6 is not installed, or its folder (by default
+`C:\Program Files (x86)\Inno Setup 6`) is not in the `PATH`. You can call the compiler by
+its full path:
 
 ```powershell
 & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" installer\setup.iss
 ```
 
-### L'installeur Inno Setup échoue avec « Source file not found … dist\win-x64\* »
+### The Inno Setup installer fails with "Source file not found … dist\win-x64\*"
 
-Le script `installer\setup.iss` empaquette `dist\win-x64\` : exécutez d'abord
-`.\build\publish.ps1`, puis relancez `iscc installer\setup.iss`.
+The `installer\setup.iss` script packages `dist\win-x64\`: run `.\build\publish.ps1`
+first, then run `iscc installer\setup.iss` again.
 
 ---
 
-## Rappels sur ce que le build produit (limites, énoncées franchement)
+## Reminders about what the build produces (limitations, stated frankly)
 
-- L'application utilise l'API Google Photos Library en HTTP direct avec OAuth 2.0
-  (Authorization Code + PKCE, redirection loopback `http://127.0.0.1:{port}/`). Chaque
-  utilisateur crée **son propre client OAuth** dans Google Cloud Console — voir
-  `docs/google-cloud-setup.md`. Le build ne contient donc **aucun identifiant Google**.
-- Depuis les changements d'API du 31 mars 2025, l'application ne peut relire que les
-  médias **qu'elle a elle-même créés** : la détection des doublons côté Google est
-  garantie uniquement pour les fichiers déjà indexés localement ou uploadés par cette
-  application (voir `docs/known-limitations.md`).
-- L'application ne supprime **jamais** de fichier local ni de média Google Photos.
+- The application uses the Google Photos Library API over direct HTTP with OAuth 2.0
+  (Authorization Code + PKCE, loopback redirect `http://127.0.0.1:{port}/`). Each user
+  creates **their own OAuth client** in the Google Cloud Console — see
+  `docs/google-cloud-setup.md`. The build therefore contains **no Google credentials**.
+- Since the API changes of March 31, 2025, the application can only read back the media
+  **it created itself**: duplicate detection on the Google side is guaranteed only for
+  files already indexed locally or uploaded by this application (see
+  `docs/known-limitations.md`).
+- The application **never** deletes a local file or a Google Photos media item.

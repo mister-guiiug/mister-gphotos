@@ -1,5 +1,6 @@
 using GPhotosUploader.Core.Data;
 using GPhotosUploader.Core.Models;
+using GPhotosUploader.Core.Resources;
 
 namespace GPhotosUploader.Core.Services;
 
@@ -63,7 +64,7 @@ public class UploadService
     {
         var requeued = _files.RequeueInterrupted();
         if (requeued > 0)
-            _log.Info("Upload", $"Reprise après interruption : {requeued} fichier(s) remis en file d'attente.");
+            _log.Info("Upload", Loc.TF("Log_Upload_Recovered", requeued));
     }
 
     public bool Start(AppSettings settings)
@@ -89,7 +90,7 @@ public class UploadService
             _pause.Pause();
             SetState(UploadServiceState.Paused);
         }
-        _log.Info("Upload", "Upload mis en pause. Le fichier en cours se termine avant l'arrêt effectif.");
+        _log.Info("Upload", Loc.T("Log_Upload_Paused"));
     }
 
     public void Resume()
@@ -100,7 +101,7 @@ public class UploadService
             _pause.Resume();
             SetState(UploadServiceState.Running);
         }
-        _log.Info("Upload", "Reprise de l'upload.");
+        _log.Info("Upload", Loc.T("Log_Upload_Resumed"));
     }
 
     public async Task StopAsync()
@@ -173,26 +174,26 @@ public class UploadService
                 CountersChanged?.Invoke();
             }
 
-            summary = $"Upload terminé : {totalUploaded} uploadé(s), {totalFailed} en erreur, {totalSkipped} ignoré(s).";
+            summary = Loc.TF("Log_Upload_Summary", totalUploaded, totalFailed, totalSkipped);
             _log.Info("Upload", summary);
         }
         catch (OperationCanceledException)
         {
             _files.MarkUploadingAsPaused();
-            summary = "Upload arrêté. Les fichiers en cours reprendront au prochain démarrage.";
+            summary = Loc.T("Log_Upload_Stopped");
             _log.Info("Upload", summary);
         }
         catch (AuthRequiredException ex)
         {
             _files.MarkUploadingAsPaused();
-            summary = $"Upload interrompu : {ex.Message}";
+            summary = Loc.TF("Log_Upload_Interrupted", ex.Message);
             _log.Error("Upload", summary);
             AuthenticationLost?.Invoke();
         }
         catch (Exception ex)
         {
             _files.MarkUploadingAsPaused();
-            summary = $"Upload interrompu par une erreur : {ex.Message}";
+            summary = Loc.TF("Log_Upload_InterruptedError", ex.Message);
             _log.Error("Upload", summary);
         }
         finally
@@ -298,7 +299,7 @@ public class UploadService
         if (!File.Exists(file.LocalPath))
         {
             file.ScanStatus = ScanStatus.Missing;
-            MarkFailed(file, "Fichier introuvable (déplacé ou supprimé depuis le scan).", permanent: true, settings);
+            MarkFailed(file, Loc.T("Upload_FileMissing"), permanent: true, settings);
             _batches.FinishAttempt(attemptId, "failed", file.LastError);
             return FileOutcome.Failed;
         }
@@ -323,7 +324,7 @@ public class UploadService
             {
                 file.UploadStatus = UploadStatus.SkippedDuplicateRemoteAppCreated;
                 file.GoogleMediaItemId = twin.GoogleMediaItemId;
-                file.LastError = $"Contenu identique déjà uploadé : {twin.LocalPath}";
+                file.LastError = Loc.TF("Upload_RemoteDuplicate", twin.LocalPath);
                 _files.Update(file);
                 _batches.FinishAttempt(attemptId, "skipped", file.LastError);
                 return FileOutcome.Skipped;
@@ -337,7 +338,7 @@ public class UploadService
             file.UploadStatus = UploadStatus.Uploading;
             _files.Update(file);
             _batches.FinishAttempt(attemptId, "token_reused", null);
-            _log.Info("Upload", $"Upload token réutilisé pour {file.FileName} (octets déjà envoyés).");
+            _log.Info("Upload", Loc.TF("Log_Upload_TokenReused", file.FileName));
             return FileOutcome.Ready;
         }
 
@@ -379,11 +380,12 @@ public class UploadService
             catch (GooglePhotosApiException ex) when (ex.StatusCode == 401 && attempt < InAttemptTransientRetries)
             {
                 _auth.InvalidateAccessToken();
-                _log.Warning("Upload", $"Token d'accès expiré pendant l'upload de {file.FileName}, rafraîchissement...");
+                _log.Warning("Upload", Loc.TF("Log_Upload_TokenExpiredRefresh", file.FileName));
             }
             catch (GooglePhotosApiException ex) when (ex.IsTransient && attempt < InAttemptTransientRetries)
             {
-                _log.Warning("Upload", $"{file.FileName} : {ex.Message} Nouvelle tentative dans {Backoff.For(attempt, ex.RetryAfter).TotalSeconds:F0} s.");
+                _log.Warning("Upload", Loc.TF("Log_Upload_RetryIn",
+                    file.FileName, ex.Message, Backoff.For(attempt, ex.RetryAfter).TotalSeconds.ToString("F0", Loc.Culture)));
                 await Task.Delay(Backoff.For(attempt, ex.RetryAfter), ct);
             }
             catch (GooglePhotosApiException ex)
@@ -396,12 +398,12 @@ public class UploadService
             }
             catch (HttpRequestException ex) when (attempt < InAttemptTransientRetries)
             {
-                _log.Warning("Upload", $"{file.FileName} : erreur réseau ({ex.Message}). Nouvelle tentative.");
+                _log.Warning("Upload", Loc.TF("Log_Upload_NetworkRetry", file.FileName, ex.Message));
                 await Task.Delay(Backoff.For(attempt, null), ct);
             }
             catch (HttpRequestException ex)
             {
-                MarkFailed(file, $"Erreur réseau : {ex.Message}", permanent: false, settings);
+                MarkFailed(file, Loc.TF("Upload_NetworkError", ex.Message), permanent: false, settings);
                 _batches.FinishAttempt(attemptId, "failed", ex.Message);
                 RegisterTransientFailure();
                 return FileOutcome.Failed;
@@ -410,7 +412,7 @@ public class UploadService
             {
                 // Erreur locale (fichier verrouillé, placeholder cloud non hydraté...) :
                 // elle ne doit pas déclencher le disjoncteur réseau.
-                MarkFailed(file, $"Erreur d'accès au fichier : {ex.Message}", permanent: false, settings);
+                MarkFailed(file, Loc.TF("Upload_FileAccessError", ex.Message), permanent: false, settings);
                 _batches.FinishAttempt(attemptId, "failed", ex.Message);
                 return FileOutcome.Failed;
             }
@@ -440,7 +442,7 @@ public class UploadService
             }
             catch (GooglePhotosApiException ex) when (ex.IsTransient && attempt < InAttemptTransientRetries)
             {
-                _log.Warning("Upload", $"batchCreate : {ex.Message}");
+                _log.Warning("Upload", Loc.TF("Log_Upload_BatchCreateRetry", ex.Message));
                 await Task.Delay(Backoff.For(attempt, ex.RetryAfter), ct);
             }
             catch (HttpRequestException) when (attempt < InAttemptTransientRetries)
@@ -472,7 +474,7 @@ public class UploadService
                         MarkFailed(f, ex.Message, permanent: false, settings);
                     }
                 }
-                _log.Error("Upload", $"batchCreate en échec : {ex.Message}");
+                _log.Error("Upload", Loc.TF("Log_Upload_BatchCreateFailed", ex.Message));
                 return 0;
             }
         }
@@ -491,16 +493,16 @@ public class UploadService
                 file.LastError = null;
                 _files.Update(file);
                 uploaded++;
-                _log.Info("Upload", $"Uploadé : {file.FileName}");
+                _log.Info("Upload", Loc.TF("Log_Upload_Uploaded", file.FileName));
             }
             else
             {
-                var message = result?.ErrorMessage ?? "Aucun résultat batchCreate pour ce fichier.";
+                var message = result?.ErrorMessage ?? Loc.T("Upload_NoBatchResult");
                 // Token consommé ou refusé : on le jette pour renvoyer les octets à la prochaine tentative.
                 file.UploadToken = null;
                 file.UploadTokenAt = null;
                 MarkFailed(file, message, permanent: false, settings);
-                _log.Warning("Upload", $"Échec : {file.FileName} — {message}");
+                _log.Warning("Upload", Loc.TF("Log_Upload_Failed", file.FileName, message));
             }
         }
         return uploaded;
@@ -517,8 +519,7 @@ public class UploadService
     private void RegisterTransientFailure()
     {
         if (Interlocked.Increment(ref _consecutiveTransient) >= ConsecutiveTransientLimit)
-            throw new HttpRequestException(
-                "Trop d'erreurs réseau consécutives. Vérifiez la connexion Internet puis relancez l'upload.");
+            throw new HttpRequestException(Loc.T("Upload_TooManyNetworkErrors"));
     }
 
     private void AddRateSample(long bytes)

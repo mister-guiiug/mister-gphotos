@@ -1,19 +1,19 @@
-# Création de l'installeur Windows
+# Building the Windows installer
 
-Ce document décrit comment fabriquer l'installeur de **Google Photos Local Uploader** (fichier `mister-gphotos-Setup-1.0.0.exe`), ce que fait cet installeur sur la machine de l'utilisateur, et ce que la désinstallation supprime — ou conserve volontairement.
+This document describes how to build the installer for **Google Photos Local Uploader** (the `mister-gphotos-Setup-1.0.0.exe` file), what this installer does on the user's machine, and what uninstalling removes — or deliberately keeps.
 
-La première partie (fabrication) s'adresse à un développeur ; la seconde (comportement de l'installeur et désinstallation) est lisible par tous.
+The first part (building) is aimed at a developer; the second (installer behavior and uninstallation) is readable by everyone.
 
 ---
 
-## 1. Prérequis (développeur)
+## 1. Prerequisites (developer)
 
-| Outil | Rôle | Où l'obtenir |
+| Tool | Role | Where to get it |
 |---|---|---|
-| SDK .NET 8 | Compiler et publier l'application | <https://dotnet.microsoft.com/download/dotnet/8.0> |
-| Inno Setup 6 | Compiler le script d'installeur `installer/setup.iss` | <https://jrsoftware.org/isdl.php> |
+| .NET 8 SDK | Compile and publish the application | <https://dotnet.microsoft.com/download/dotnet/8.0> |
+| Inno Setup 6 | Compile the installer script `installer/setup.iss` | <https://jrsoftware.org/isdl.php> |
 
-Après installation d'Inno Setup 6, vérifiez que le compilateur en ligne de commande `iscc` est accessible. S'il ne l'est pas, ajoutez son dossier au `PATH` (installation par défaut : `C:\Program Files (x86)\Inno Setup 6`) ou appelez-le par son chemin complet :
+After installing Inno Setup 6, make sure the command-line compiler `iscc` is available. If it is not, add its folder to `PATH` (default installation: `C:\Program Files (x86)\Inno Setup 6`) or invoke it by its full path:
 
 ```powershell
 & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" installer\setup.iss
@@ -21,97 +21,97 @@ Après installation d'Inno Setup 6, vérifiez que le compilateur en ligne de com
 
 ---
 
-## 2. Procédure de fabrication (développeur)
+## 2. Build procedure (developer)
 
-Toutes les commandes s'exécutent depuis la racine du dépôt (`mister-tof-sync-desktop`).
+All commands are run from the repository root (`mister-tof-sync-desktop`).
 
-### Étape 1 — Publier l'application
+### Step 1 — Publish the application
 
 ```powershell
 .\build\publish.ps1
 ```
 
-Ce script exécute `dotnet publish` sur `src\GPhotosUploader.App\GPhotosUploader.App.csproj` en configuration `Release`, pour le runtime `win-x64`, en mode **auto-contenu** (`--self-contained true`, `PublishSingleFile=false`). Le résultat est écrit dans :
+This script runs `dotnet publish` on `src\GPhotosUploader.App\GPhotosUploader.App.csproj` in `Release` configuration, for the `win-x64` runtime, in **self-contained** mode (`--self-contained true`, `PublishSingleFile=false`). The output is written to:
 
 ```
 dist\win-x64\
 ```
 
-avec l'exécutable `dist\win-x64\GooglePhotosLocalUploader.exe`. L'application publiée embarque le runtime .NET : **aucune installation préalable de .NET n'est requise sur la machine cible.**
+with the executable `dist\win-x64\GooglePhotosLocalUploader.exe`. The published application embeds the .NET runtime: **no prior .NET installation is required on the target machine.**
 
-Optionnel mais recommandé avant publication : `.\build\build.ps1` compile la solution et exécute la suite de tests (`dotnet restore` + `dotnet build` + `dotnet test`).
+Optional but recommended before publishing: `.\build\build.ps1` compiles the solution and runs the test suite (`dotnet restore` + `dotnet build` + `dotnet test`).
 
-### Étape 2 — Compiler l'installeur
+### Step 2 — Compile the installer
 
 ```powershell
 iscc installer\setup.iss
 ```
 
-Le script `installer/setup.iss` empaquette tout le contenu de `dist\win-x64\*` (récursivement) et produit l'installeur dans :
+The `installer/setup.iss` script packages the entire contents of `dist\win-x64\*` (recursively) and produces the installer at:
 
 ```
 dist\installer\mister-gphotos-Setup-1.0.0.exe
 ```
 
-Le nom du fichier suit le motif `mister-gphotos-Setup-{version}` défini par `OutputBaseFilename` dans `setup.iss` (version actuelle : `1.0.0`, constante `MyAppVersion`).
+The file name follows the pattern `mister-gphotos-Setup-{version}` defined by `OutputBaseFilename` in `setup.iss` (current version: `1.0.0`, constant `MyAppVersion`).
 
-> **Ordre obligatoire** : l'étape 1 doit précéder l'étape 2. Si `dist\win-x64\` n'existe pas ou est obsolète, `iscc` échouera ou empaquettera une version périmée.
-
----
-
-## 3. Comportement de l'installeur (tout public)
-
-Le script `installer/setup.iss` configure l'installeur ainsi (paramètres réels du fichier) :
-
-- **Installation par utilisateur, sans droits administrateur** : `PrivilegesRequired=lowest`. Aucune élévation UAC n'est demandée. Le dossier d'installation proposé est `{autopf}\Google Photos Local Uploader` ; sans droits administrateur, Inno Setup le résout vers le « Program Files » propre à l'utilisateur, typiquement `C:\Users\<votre nom>\AppData\Local\Programs\Google Photos Local Uploader`.
-- **Langue** : l'assistant d'installation est en **français** (seule langue déclarée : `compiler:Languages\French.isl`), avec l'interface moderne d'Inno Setup (`WizardStyle=modern`).
-- **Architecture** : installation en mode 64 bits sur les systèmes compatibles x64 (`ArchitecturesInstallIn64BitMode=x64compatible`). L'application publiée cible `win-x64`.
-- **Icône sur le Bureau** : proposée pendant l'installation via une case à cocher, **décochée par défaut** (tâche `desktopicon`, drapeau `unchecked`).
-- **Menu Démarrer** : un raccourci « Google Photos Local Uploader » est créé ; la page de choix du groupe de programmes n'est pas affichée (`DisableProgramGroupPage=yes`).
-- **Fin d'installation** : une case propose de lancer l'application immédiatement (section `[Run]`, drapeaux `nowait postinstall skipifsilent`).
-- **Compression** : `lzma2` avec `SolidCompression=yes`.
-- **Identifiant d'application** : `AppId {7E9D2C4A-1F5B-4E83-9A6C-2B8D0E4F6153}` — il permet à Windows de reconnaître l'application pour les mises à jour et la désinstallation.
+> **Mandatory order**: Step 1 must precede Step 2. If `dist\win-x64\` does not exist or is out of date, `iscc` will fail or will package a stale version.
 
 ---
 
-## 4. Désinstallation : ce qui est supprimé, ce qui est conservé (tout public)
+## 3. Installer behavior (general audience)
 
-### Supprimé par le désinstalleur
+The `installer/setup.iss` script configures the installer as follows (actual settings from the file):
 
-- Les fichiers du programme installés dans le dossier d'installation (contenu copié depuis `dist\win-x64`).
-- Les raccourcis créés par l'installeur (menu Démarrer et, le cas échéant, icône du Bureau).
-
-### Conservé **volontairement** par le désinstalleur
-
-- **Les données locales de l'application** dans `%APPDATA%\GooglePhotosLocalUploader\` : la base d'inventaire `app.db` et le dossier `logs\` (journaux quotidiens).
-- **Les secrets** enregistrés dans le Gestionnaire d'identifiants Windows : entrées `GooglePhotosLocalUploader/RefreshToken` et `GooglePhotosLocalUploader/OAuthClientSecret`.
-
-Ce choix est délibéré : il permet de réinstaller ou de mettre à jour l'application sans perdre l'inventaire des fichiers déjà uploadés ni devoir reconnecter le compte Google.
-
-**Pour tout effacer avant de désinstaller** : ouvrez l'application et utilisez le bouton **« Supprimer les données locales de l'application »** (section « Données locales » de l'interface). Après confirmation, il efface l'inventaire SQLite, les journaux, les paramètres et les secrets du Gestionnaire d'identifiants Windows, puis ferme l'application. Vos photos locales et vos médias Google Photos ne sont **jamais** touchés — ni par ce bouton, ni par la désinstallation : l'application ne supprime aucun fichier local ni aucun média Google Photos.
-
-Si vous avez désinstallé sans utiliser ce bouton, vous pouvez encore supprimer manuellement le dossier `%APPDATA%\GooglePhotosLocalUploader\` et, dans le Gestionnaire d'identifiants Windows (Panneau de configuration → Gestionnaire d'identifiants → Informations d'identification Windows), les deux entrées citées ci-dessus.
+- **Per-user installation, no administrator rights**: `PrivilegesRequired=lowest`. No UAC elevation is requested. The proposed installation folder is `{autopf}\Google Photos Local Uploader`; without administrator rights, Inno Setup resolves it to the user's own "Program Files", typically `C:\Users\<your name>\AppData\Local\Programs\Google Photos Local Uploader`.
+- **Language**: the installation wizard is in **French** (the only declared language: `compiler:Languages\French.isl`), using Inno Setup's modern interface (`WizardStyle=modern`).
+- **Architecture**: 64-bit installation on x64-compatible systems (`ArchitecturesInstallIn64BitMode=x64compatible`). The published application targets `win-x64`.
+- **Desktop icon**: offered during installation via a checkbox, **unchecked by default** (task `desktopicon`, flag `unchecked`).
+- **Start menu**: a "Google Photos Local Uploader" shortcut is created; the program group selection page is not shown (`DisableProgramGroupPage=yes`).
+- **End of installation**: a checkbox offers to launch the application immediately (`[Run]` section, flags `nowait postinstall skipifsilent`).
+- **Compression**: `lzma2` with `SolidCompression=yes`.
+- **Application identifier**: `AppId {7E9D2C4A-1F5B-4E83-9A6C-2B8D0E4F6153}` — it lets Windows recognize the application for updates and uninstallation.
 
 ---
 
-## 5. Signature de code (optionnelle, non fournie)
+## 4. Uninstallation: what is removed, what is kept (general audience)
 
-L'installeur produit n'est **pas signé numériquement** : le projet ne fournit ni certificat de signature de code ni configuration de signature. Conséquence pratique : au premier lancement, Windows SmartScreen peut afficher un avertissement « Windows a protégé votre ordinateur » ; l'utilisateur doit cliquer sur « Informations complémentaires » puis « Exécuter quand même ».
+### Removed by the uninstaller
 
-Si vous disposez de votre propre certificat de signature de code (certificat OV/EV acheté auprès d'une autorité de certification, ou via Azure Trusted Signing), vous pouvez signer :
+- The program files installed in the installation folder (content copied from `dist\win-x64`).
+- The shortcuts created by the installer (Start menu and, where applicable, the desktop icon).
 
-1. **Les binaires publiés** après l'étape `publish.ps1` (par exemple `dist\win-x64\GooglePhotosLocalUploader.exe`) avec `signtool sign`.
-2. **L'installeur lui-même**, soit en signant `dist\installer\mister-gphotos-Setup-1.0.0.exe` après compilation, soit en configurant la directive `SignTool` d'Inno Setup dans `setup.iss`.
+### **Deliberately** kept by the uninstaller
 
-Aucune de ces étapes n'est requise pour que l'installeur fonctionne ; elles servent uniquement à réduire les avertissements de sécurité de Windows.
+- **The application's local data** in `%APPDATA%\GooglePhotosLocalUploader\`: the inventory database `app.db` and the `logs\` folder (daily logs).
+- **The secrets** stored in Windows Credential Manager: the entries `GooglePhotosLocalUploader/RefreshToken` and `GooglePhotosLocalUploader/OAuthClientSecret`.
+
+This choice is intentional: it allows you to reinstall or update the application without losing the inventory of files already uploaded, and without having to reconnect the Google account.
+
+**To erase everything before uninstalling**: open the application and use the **"Delete the application's local data"** button (the "Local data" section of the interface). After confirmation, it erases the SQLite inventory, the logs, the settings, and the secrets in Windows Credential Manager, then closes the application. Your local photos and your Google Photos media are **never** touched — neither by this button nor by uninstallation: the application does not delete any local file or any Google Photos media.
+
+If you uninstalled without using this button, you can still manually delete the `%APPDATA%\GooglePhotosLocalUploader\` folder and, in Windows Credential Manager (Control Panel → Credential Manager → Windows Credentials), the two entries mentioned above.
 
 ---
 
-## Récapitulatif rapide (développeur)
+## 5. Code signing (optional, not provided)
+
+The produced installer is **not digitally signed**: the project provides neither a code-signing certificate nor any signing configuration. Practical consequence: on first launch, Windows SmartScreen may display a "Windows protected your PC" warning; the user must click "More info" then "Run anyway".
+
+If you have your own code-signing certificate (an OV/EV certificate purchased from a certificate authority, or via Azure Trusted Signing), you can sign:
+
+1. **The published binaries** after the `publish.ps1` step (for example `dist\win-x64\GooglePhotosLocalUploader.exe`) with `signtool sign`.
+2. **The installer itself**, either by signing `dist\installer\mister-gphotos-Setup-1.0.0.exe` after compilation, or by configuring Inno Setup's `SignTool` directive in `setup.iss`.
+
+None of these steps are required for the installer to work; they only serve to reduce Windows security warnings.
+
+---
+
+## Quick recap (developer)
 
 ```powershell
-# Depuis la racine du dépôt :
-.\build\build.ps1        # optionnel : compile + tests
-.\build\publish.ps1      # publie l'app auto-contenue dans dist\win-x64\
-iscc installer\setup.iss # produit dist\installer\mister-gphotos-Setup-1.0.0.exe
+# From the repository root:
+.\build\build.ps1        # optional: compile + tests
+.\build\publish.ps1      # publishes the self-contained app to dist\win-x64\
+iscc installer\setup.iss # produces dist\installer\mister-gphotos-Setup-1.0.0.exe
 ```

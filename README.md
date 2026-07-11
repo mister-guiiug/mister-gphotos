@@ -1,135 +1,135 @@
 # Google Photos Local Uploader
 
-Application de bureau pour **Windows 10 / 11** qui envoie vos photos locales vers **Google Photos**, dossier par dossier, de façon fiable et reprenable. Elle scanne un dossier racine (sous-dossiers inclus), construit un inventaire local (base SQLite avec empreinte SHA-256 de chaque fichier), puis uploade les images par lots vers votre compte Google — avec pause, reprise après coupure réseau ou fermeture de l'application, et journal détaillé.
+Desktop application for **Windows 10 / 11** that uploads your local photos to **Google Photos**, folder by folder, in a reliable and resumable way. It scans a root folder (subfolders included), builds a local inventory (SQLite database with a SHA-256 fingerprint of each file), then uploads the images in batches to your Google account — with pause, resume after a network outage or application shutdown, and a detailed log.
 
-L'interface est entièrement en français.
-
----
-
-## Ce que fait l'application
-
-- **Scan récursif** d'un dossier racine : détection des images compatibles, calcul du hash SHA-256, indexation dans une base SQLite locale. Le scan est relançable : un fichier déjà connu et inchangé n'est pas re-analysé.
-- **Upload par lots** vers Google Photos : envoi des octets (endpoint `uploads`), puis création des médias par appels `mediaItems:batchCreate` (50 éléments maximum par appel — le lot par défaut est de 20 fichiers, avec 1 à 3 uploads simultanés, 2 par défaut).
-- **Reprise après interruption** : chaque étape est persistée dans SQLite. Au redémarrage, les fichiers restés « en cours d'upload » sont remis en file d'attente ; un upload token encore frais (moins de 20 h) est réutilisé sans renvoyer les octets.
-- **Gestion des erreurs** : nouvelles tentatives automatiques avec backoff exponentiel (plafonné à 60 s, avec aléa), en-tête `Retry-After` de Google honoré, arrêt de sécurité après 5 échecs réseau consécutifs. Les fichiers en erreur sont retentés tant que leur compteur reste sous le maximum configuré (5 par défaut) ; un bouton « Relancer les fichiers en erreur » permet de repartir de zéro.
-- **Détection de doublons par contenu** (hash SHA-256) : un même contenu présent à deux endroits du disque n'est uploadé qu'une fois ; un fichier déjà uploadé par l'application n'est jamais renvoyé.
-- **Suivi en temps réel** : progression globale et par fichier, débit, temps restant estimé, compteurs (détectés / en attente / uploadés / ignorés / erreurs), onglets « Journal », « Détails des fichiers » (avec filtres par statut) et « Historique » des lots.
-
-## Ce que l'application ne fait PAS
-
-- Elle **ne supprime jamais** un fichier local ni un média Google Photos.
-- Elle **ne lit pas** votre bibliothèque Google Photos existante (voir l'encadré ci-dessous).
-- Elle n'uploade pas de vidéos ni de fichiers dépassant la limite configurée (200 Mo maximum, limite photo de Google Photos).
-- Elle ne propose pas l'option « économiseur de stockage » : l'API Google Photos ne l'offre pas. Les uploads se font en qualité d'origine.
-
-> ### ⚠️ Limites de la détection de doublons
->
-> Depuis les changements de la Google Photos Library API du **31 mars 2025**, une application tierce ne peut plus lire l'ensemble de votre bibliothèque : elle ne peut relire **que les médias qu'elle a elle-même créés**. Comme l'indique l'application dans l'onglet « Paramètres » :
->
-> « Google Photos ne permet pas à cette application de vérifier toute votre bibliothèque. La détection des doublons est garantie uniquement pour les fichiers déjà indexés localement ou uploadés par cette application. »
->
-> Concrètement : si une photo est déjà dans Google Photos parce que vous l'y avez mise **par un autre moyen** (application mobile, site web, autre outil), cette application ne peut pas le savoir et l'uploadera à nouveau. Google Photos peut alors la dédupliquer de son côté, mais ce comportement n'est pas garanti par l'API.
-
-> ### ⚠️ Stockage de votre compte Google
->
-> Les photos uploadées **comptent dans le quota de stockage de votre compte Google** (elles sont envoyées en qualité d'origine ; l'API ne propose pas l'option « économiseur de stockage »). Vérifiez votre espace disponible avant d'uploader une grande photothèque.
+The interface is available in several languages and follows your operating system's display language (English by default, French also provided).
 
 ---
 
-## Prérequis
+## What the application does
 
-| Prérequis | Détail |
+- **Recursive scan** of a root folder: detection of compatible images, SHA-256 hash computation, indexing in a local SQLite database. The scan is re-runnable: a file that is already known and unchanged is not re-analyzed.
+- **Batch upload** to Google Photos: sending the bytes (`uploads` endpoint), then creating the media through `mediaItems:batchCreate` calls (50 items maximum per call — the default batch is 20 files, with 1 to 3 concurrent uploads, 2 by default).
+- **Resume after interruption**: each step is persisted in SQLite. On restart, files that remained "uploading" are put back in the queue; an upload token that is still fresh (less than 20 h old) is reused without resending the bytes.
+- **Error handling**: automatic retries with exponential backoff (capped at 60 s, with jitter), Google's `Retry-After` header honored, safety stop after 5 consecutive network failures. Files in error are retried as long as their counter stays below the configured maximum (5 by default); a "Retry failed files" button lets you start over from scratch.
+- **Content-based duplicate detection** (SHA-256 hash): the same content present in two locations on the disk is uploaded only once; a file already uploaded by the application is never resent.
+- **Real-time monitoring**: overall and per-file progress, throughput, estimated time remaining, counters (detected / pending / uploaded / skipped / errors), "Log", "File details" (with filters by status) and "History" of batches tabs.
+
+## What the application does NOT do
+
+- It **never deletes** a local file or a Google Photos media.
+- It **does not read** your existing Google Photos library (see the box below).
+- It does not upload videos or files exceeding the configured limit (200 MB maximum, Google Photos' photo limit).
+- It does not offer the "storage saver" option: the Google Photos API does not provide it. Uploads are done in original quality.
+
+> ### ⚠️ Limits of duplicate detection
+>
+> Since the Google Photos Library API changes of **March 31, 2025**, a third-party application can no longer read your entire library: it can only read back **the media it created itself**. As the application indicates in the "Settings" tab:
+>
+> "Google Photos does not allow this application to check your entire library. Duplicate detection is guaranteed only for files already indexed locally or uploaded by this application."
+>
+> Concretely: if a photo is already in Google Photos because you put it there **by another means** (mobile app, website, another tool), this application cannot know it and will upload it again. Google Photos may then deduplicate it on its side, but this behavior is not guaranteed by the API.
+
+> ### ⚠️ Storage of your Google account
+>
+> Uploaded photos **count against your Google account's storage quota** (they are sent in original quality; the API does not offer the "storage saver" option). Check your available space before uploading a large photo library.
+
+---
+
+## Prerequisites
+
+| Prerequisite | Detail |
 |---|---|
-| Système | Windows 10 ou Windows 11 (x64) |
-| Compte Google | Un compte Google Photos avec suffisamment de stockage |
-| Client OAuth personnel | Un projet Google Cloud avec un client OAuth de type « Application de bureau » que **vous** créez (Client ID + Client Secret) — voir [docs/google-cloud-setup.md](docs/google-cloud-setup.md) |
-| Runtime | Aucun : la version publiée est auto-contenue (le SDK .NET 8 n'est requis que pour compiler depuis les sources) |
+| System | Windows 10 or Windows 11 (x64) |
+| Google account | A Google Photos account with enough storage |
+| Personal OAuth client | A Google Cloud project with a "Desktop app" type OAuth client that **you** create (Client ID + Client Secret) — see [docs/google-cloud-setup.md](docs/google-cloud-setup.md) |
+| Runtime | None: the published version is self-contained (the .NET 8 SDK is only required to compile from source) |
 
-L'application n'utilise pas de client OAuth partagé : chaque utilisateur crée le sien dans Google Cloud Console. C'est une étape unique d'environ 15 minutes, guidée par l'**assistant intégré** (onglet « Paramètres ») ou pas à pas dans [docs/google-cloud-setup.md](docs/google-cloud-setup.md). Google n'expose aucune API permettant d'automatiser entièrement cette création (voir [docs/known-limitations.md](docs/known-limitations.md)). Aucun mot de passe Google n'est jamais saisi dans l'application : la connexion se fait dans votre navigateur (OAuth 2.0 Authorization Code + PKCE, redirection locale `http://127.0.0.1:{port}/`).
+The application does not use a shared OAuth client: each user creates their own in the Google Cloud Console. This is a one-time step of about 15 minutes, guided by the **built-in wizard** ("Settings" tab) or step by step in [docs/google-cloud-setup.md](docs/google-cloud-setup.md). Google exposes no API allowing this creation to be fully automated (see [docs/known-limitations.md](docs/known-limitations.md)). No Google password is ever entered in the application: sign-in happens in your browser (OAuth 2.0 Authorization Code + PKCE, local redirect `http://127.0.0.1:{port}/`).
 
 ---
 
 ## Installation
 
-### Option A — Via l'installeur (recommandé)
+### Option A — Via the installer (recommended)
 
-1. Récupérez l'installeur `mister-gphotos-Setup-<version>.exe` depuis la page **Releases** du dépôt (généré automatiquement par la CI/CD à chaque tag `vX.Y.Z`, voir [docs/ci-cd.md](docs/ci-cd.md)), ou compilez-le localement (`dist\installer\`).
-2. Lancez-le : installation par utilisateur, sans droits administrateur (`PrivilegesRequired=lowest`), assistant en français, icône de bureau optionnelle.
-3. Démarrez « Google Photos Local Uploader » depuis le menu Démarrer.
+1. Get the installer `mister-gphotos-Setup-<version>.exe` from the repository's **Releases** page (generated automatically by the CI/CD on each `vX.Y.Z` tag, see [docs/ci-cd.md](docs/ci-cd.md)), or build it locally (`dist\installer\`).
+2. Run it: per-user installation, without administrator rights (`PrivilegesRequired=lowest`), wizard in English, optional desktop icon.
+3. Start "Google Photos Local Uploader" from the Start menu.
 
-Une **version portable** (un seul fichier `.exe`, aucune installation) est également jointe à chaque Release.
+A **portable version** (a single `.exe` file, no installation) is also attached to each Release.
 
-À la désinstallation, les données locales (`%APPDATA%\GooglePhotosLocalUploader`) et les secrets du Gestionnaire d'identifiants Windows ne sont volontairement **pas** supprimés : utilisez d'abord le bouton « Supprimer les données locales de l'application » (onglet « Paramètres ») si vous voulez tout effacer.
+On uninstall, the local data (`%APPDATA%\GooglePhotosLocalUploader`) and the secrets in the Windows Credential Manager are deliberately **not** removed: first use the "Delete the application's local data" button ("Settings" tab) if you want to erase everything.
 
-### Option B — Compilation depuis les sources (développeurs)
+### Option B — Compilation from source (developers)
 
-Prérequis : [SDK .NET 8](https://dotnet.microsoft.com/download/dotnet/8.0), et [Inno Setup 6](https://jrsoftware.org/isdl.php) si vous voulez produire l'installeur.
+Prerequisites: [.NET 8 SDK](https://dotnet.microsoft.com/download/dotnet/8.0), and [Inno Setup 6](https://jrsoftware.org/isdl.php) if you want to produce the installer.
 
 ```powershell
-# 1. Compiler la solution et exécuter les tests (54 tests)
+# 1. Build the solution and run the tests (59 tests)
 .\build\build.ps1
 
-# 2. Publier l'exécutable auto-contenu win-x64 dans dist\win-x64\
+# 2. Publish the self-contained win-x64 executable to dist\win-x64\
 .\build\publish.ps1
 # -> dist\win-x64\GooglePhotosLocalUploader.exe
 
-# 3. (Optionnel) Construire l'installeur dans dist\installer\
+# 3. (Optional) Build the installer into dist\installer\
 iscc installer\setup.iss
 ```
 
 ---
 
-## Démarrage rapide en 5 étapes
+## Quick start in 5 steps
 
-1. **Configurer OAuth** — Dans l'onglet « Paramètres », cliquez sur **« Assistant de configuration Google Cloud... »** : il vous guide pas à pas (création du projet, activation de l'API, écran de consentement, client « Application de bureau »), ouvre les bonnes pages de la console et **importe le fichier `client_secret_….json`** téléchargé. Alternative manuelle : [docs/google-cloud-setup.md](docs/google-cloud-setup.md) ; utilisateurs de `gcloud` : `scripts\setup-google-cloud.ps1` automatise la partie automatisable.
-2. **Connecter** — Cliquez sur « Connecter mon compte Google » : votre navigateur s'ouvre, vous autorisez l'application, puis revenez dans la fenêtre (message « Connexion réussie »). Vous disposez de 5 minutes pour terminer l'autorisation.
-3. **Choisir le dossier** — Cliquez sur « Parcourir... » et sélectionnez le dossier racine contenant vos photos (les sous-dossiers sont inclus).
-4. **Scanner** — Cliquez sur « Scanner le dossier » : l'application inventorie les images, calcule les empreintes et signale les nouveaux fichiers, doublons et fichiers incompatibles.
-5. **Uploader** — Cliquez sur « Démarrer l'upload ». Vous pouvez à tout moment utiliser « Pause », « Reprendre » ou « Arrêter » : la progression est conservée et reprend là où elle s'était arrêtée, même après fermeture de l'application.
+1. **Configure OAuth** — In the "Settings" tab, click **"Google Cloud setup wizard..."**: it guides you step by step (project creation, API activation, consent screen, "Desktop app" client), opens the right console pages and **imports the downloaded `client_secret_….json` file**. Manual alternative: [docs/google-cloud-setup.md](docs/google-cloud-setup.md); `gcloud` users: `scripts\setup-google-cloud.ps1` automates the automatable part.
+2. **Connect** — Click "Connect my Google account": your browser opens, you authorize the application, then return to the window (message "Connection successful"). You have 5 minutes to complete the authorization.
+3. **Choose the folder** — Click "Browse..." and select the root folder containing your photos (subfolders are included).
+4. **Scan** — Click "Scan the folder": the application inventories the images, computes the fingerprints and reports new files, duplicates and incompatible files.
+5. **Upload** — Click "Start upload". At any time you can use "Pause", "Resume" or "Stop": progress is preserved and resumes where it left off, even after the application is closed.
 
-### Formats pris en charge par défaut
+### Formats supported by default
 
-`jpg, jpeg, png, webp, heic, heif, gif, tif, tiff, bmp, avif, ico` ainsi que les formats RAW `dng, cr2, cr3, crw, nef, nrw, arw, orf, raf, rw2, srw, pef, srf, sr2`. La liste est modifiable dans l'onglet « Paramètres » (extensions séparées par des virgules, sans point).
-
----
-
-## Données locales, secrets et confidentialité
-
-- **Où sont les données ?** Dans `%APPDATA%\GooglePhotosLocalUploader\` : la base `app.db` (inventaire, paramètres, historique des lots — les entrées de journal en base de plus de 90 jours sont purgées au démarrage) et le dossier `logs\` (fichiers de journaux quotidiens, conservés tant que vous ne les supprimez pas).
-- **Où sont les secrets ?** Le refresh token Google et le Client Secret OAuth sont stockés dans le **Gestionnaire d'identifiants Windows** (entrées `GooglePhotosLocalUploader/RefreshToken` et `GooglePhotosLocalUploader/OAuthClientSecret`), chiffrés par Windows — jamais en clair sur le disque. Seul le Client ID (non secret) est conservé dans la base SQLite.
-- **Permissions demandées à Google** : les portées minimales `photoslibrary.appendonly` (ajouter des médias), `photoslibrary.readonly.appcreateddata` (relire uniquement les médias créés par l'application), `openid` et `email` (afficher le compte connecté). L'application ne peut ni lire le reste de votre bibliothèque, ni supprimer quoi que ce soit.
-- **Tout effacer** : le bouton « Supprimer les données locales de l'application » (onglet « Paramètres ») révoque le token, efface les secrets du Gestionnaire d'identifiants, supprime la base et les journaux, puis ferme l'application. Vos photos locales et vos médias Google Photos ne sont pas touchés.
+`jpg, jpeg, png, webp, heic, heif, gif, tif, tiff, bmp, avif, ico` as well as the RAW formats `dng, cr2, cr3, crw, nef, nrw, arw, orf, raf, rw2, srw, pef, srf, sr2`. The list can be modified in the "Settings" tab (extensions separated by commas, without a dot).
 
 ---
 
-## Choix techniques (en bref)
+## Local data, secrets and privacy
 
-L'application est écrite en **C# / .NET 8** avec **WPF**, plutôt que :
+- **Where is the data?** In `%APPDATA%\GooglePhotosLocalUploader\`: the `app.db` database (inventory, settings, batch history — log entries in the database older than 90 days are purged at startup) and the `logs\` folder (daily log files, kept until you delete them).
+- **Where are the secrets?** The Google refresh token and the OAuth Client Secret are stored in the **Windows Credential Manager** (entries `GooglePhotosLocalUploader/RefreshToken` and `GooglePhotosLocalUploader/OAuthClientSecret`), encrypted by Windows — never in clear text on the disk. Only the Client ID (not secret) is kept in the SQLite database.
+- **Permissions requested from Google**: the minimal scopes `photoslibrary.appendonly` (add media), `photoslibrary.readonly.appcreateddata` (read back only the media created by the application), `openid` and `email` (display the connected account). The application can neither read the rest of your library nor delete anything.
+- **Erase everything**: the "Delete the application's local data" button ("Settings" tab) revokes the token, erases the secrets from the Credential Manager, deletes the database and the logs, then closes the application. Your local photos and your Google Photos media are not touched.
 
-- **Electron / web embarqué** : beaucoup plus lourd (moteur Chromium complet) pour une application locale qui fait surtout du hachage de fichiers et du HTTP ; WPF donne une interface Windows native, sobre et rapide.
-- **WinUI 3 / MAUI** : cibles pertinentes pour du multi-plateforme ou du design moderne, mais outillage moins stable ; WPF est mature, parfaitement supporté sur Windows 10/11 et suffisant pour cette interface.
-- **SDK Google officiel** : le client .NET `Google.Apis.PhotosLibrary` est déprécié ; l'application appelle donc directement l'API HTTP (`/v1/uploads` et `/v1/mediaItems:batchCreate`), ce qui réduit les dépendances et suit exactement le protocole documenté.
+---
 
-Le reste de la pile : `Microsoft.Data.Sqlite` pour l'inventaire local (aucun serveur de base de données), `CommunityToolkit.Mvvm` pour le modèle MVVM, et une publication **auto-contenue win-x64** qui n'exige aucune installation de .NET sur la machine cible.
+## Technical choices (in brief)
+
+The application is written in **C# / .NET 8** with **WPF**, rather than:
+
+- **Electron / embedded web**: much heavier (a full Chromium engine) for a local application that mostly does file hashing and HTTP; WPF gives a native, lean and fast Windows interface.
+- **WinUI 3 / MAUI**: relevant targets for cross-platform or modern design, but with less stable tooling; WPF is mature, perfectly supported on Windows 10/11 and sufficient for this interface.
+- **Official Google SDK**: the `Google.Apis.PhotosLibrary` .NET client is deprecated; the application therefore calls the HTTP API directly (`/v1/uploads` and `/v1/mediaItems:batchCreate`), which reduces dependencies and follows exactly the documented protocol.
+
+The rest of the stack: `Microsoft.Data.Sqlite` for the local inventory (no database server), `CommunityToolkit.Mvvm` for the MVVM model, and a **self-contained win-x64** publication that requires no .NET installation on the target machine.
 
 ---
 
 ## Documentation
 
-| Document | Public | Contenu |
+| Document | Audience | Content |
 |---|---|---|
-| [docs/google-cloud-setup.md](docs/google-cloud-setup.md) | Tous | Créer son projet Google Cloud et son client OAuth « Application de bureau » (Client ID / Client Secret), pas à pas |
-| [docs/user-guide.md](docs/user-guide.md) | Tous | Guide d'utilisation complet : écrans, statuts des fichiers, pause/reprise, filtres, export du journal, FAQ |
-| [docs/known-limitations.md](docs/known-limitations.md) | Tous | Limites connues : détection des doublons, quotas API, stockage, mode Test OAuth |
-| [docs/architecture.md](docs/architecture.md) | Développeurs | Architecture des projets `GPhotosUploader.Core` / `GPhotosUploader.App`, services, flux d'upload et logique de reprise |
-| [docs/database-schema.md](docs/database-schema.md) | Développeurs | Schéma de la base SQLite (`app.db`) : tables, statuts, migrations |
-| [docs/build-windows.md](docs/build-windows.md) | Développeurs | Compilation, tests et publication auto-contenue (`build\publish.ps1`) |
-| [docs/installer.md](docs/installer.md) | Développeurs | Création de l'installeur Windows avec Inno Setup (`installer\setup.iss`) |
-| [docs/ci-cd.md](docs/ci-cd.md) | Développeurs | CI/CD GitHub Actions : tests automatiques et Release (installeur + exe portable) sur tag `vX.Y.Z` |
+| [docs/google-cloud-setup.md](docs/google-cloud-setup.md) | Everyone | Create your Google Cloud project and your "Desktop app" OAuth client (Client ID / Client Secret), step by step |
+| [docs/user-guide.md](docs/user-guide.md) | Everyone | Complete usage guide: screens, file statuses, pause/resume, filters, log export, FAQ |
+| [docs/known-limitations.md](docs/known-limitations.md) | Everyone | Known limits: duplicate detection, API quotas, storage, OAuth Test mode |
+| [docs/architecture.md](docs/architecture.md) | Developers | Architecture of the `GPhotosUploader.Core` / `GPhotosUploader.App` projects, services, upload flow and resume logic |
+| [docs/database-schema.md](docs/database-schema.md) | Developers | Schema of the SQLite database (`app.db`): tables, statuses, migrations |
+| [docs/build-windows.md](docs/build-windows.md) | Developers | Compilation, tests and self-contained publication (`build\publish.ps1`) |
+| [docs/installer.md](docs/installer.md) | Developers | Creation of the Windows installer with Inno Setup (`installer\setup.iss`) |
+| [docs/ci-cd.md](docs/ci-cd.md) | Developers | GitHub Actions CI/CD: automatic tests and Release (installer + portable exe) on `vX.Y.Z` tag |
 
 ---
 
-## Structure du dépôt
+## Repository structure
 
 ```
 GooglePhotosUploader.sln
@@ -149,4 +149,4 @@ docs/                      Documentation détaillée (voir la table ci-dessus)
 
 ---
 
-*Google Photos est une marque de Google LLC. Cette application est un outil indépendant, non affilié à Google ; elle utilise l'API publique Google Photos Library avec le client OAuth que vous créez vous-même.*
+*Google Photos is a trademark of Google LLC. This application is an independent tool, not affiliated with Google; it uses the public Google Photos Library API with the OAuth client that you create yourself.*

@@ -8,7 +8,7 @@ $ErrorActionPreference = "Stop"
 $root = Split-Path -Parent $PSScriptRoot
 $out = "$root\dist\$Runtime"
 
-Write-Host "=== Publication auto-contenue ($Runtime) ===" -ForegroundColor Cyan
+Write-Host "=== Self-contained publish ($Runtime) ===" -ForegroundColor Cyan
 dotnet publish "$root\src\GPhotosUploader.App\GPhotosUploader.App.csproj" `
     -c Release `
     -r $Runtime `
@@ -17,5 +17,5 @@ dotnet publish "$root\src\GPhotosUploader.App\GPhotosUploader.App.csproj" `
     -o $out
 if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
-Write-Host "Publication terminée : $out" -ForegroundColor Green
-Write-Host "Exécutable : $out\GooglePhotosLocalUploader.exe"
+Write-Host "Publish complete: $out" -ForegroundColor Green
+Write-Host "Executable: $out\GooglePhotosLocalUploader.exe"

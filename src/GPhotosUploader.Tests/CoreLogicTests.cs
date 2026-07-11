@@ -1,4 +1,6 @@
+using System.Globalization;
 using GPhotosUploader.Core.Models;
+using GPhotosUploader.Core.Resources;
 using GPhotosUploader.Core.Services;
 using Xunit;
 
@@ -72,18 +74,20 @@ public class CompatibilityCheckerTests
     [Fact]
     public void RejectsUnsupportedExtension()
     {
+        Loc.Culture = CultureInfo.GetCultureInfo("en");
         var result = MakeChecker().Check("exe", 1024);
         Assert.False(result.IsCompatible);
-        Assert.Contains("non prise en charge", result.Reason);
+        Assert.Contains("not supported", result.Reason);
     }
 
     [Fact]
     public void RejectsOversizedFile()
     {
+        Loc.Culture = CultureInfo.GetCultureInfo("en");
         var checker = MakeChecker(maxMb: 1);
         var result = checker.Check("jpg", 2L * 1024 * 1024);
         Assert.False(result.IsCompatible);
-        Assert.Contains("volumineux", result.Reason);
+        Assert.Contains("too large", result.Reason);
     }
 
     [Fact]

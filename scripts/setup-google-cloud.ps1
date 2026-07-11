@@ -1,28 +1,26 @@
 <#
 .SYNOPSIS
-    Voie rapide (optionnelle) de préparation Google Cloud avec la CLI gcloud.
+    Optional fast track for Google Cloud preparation using the gcloud CLI.
 
 .DESCRIPTION
-    Ce script automatise UNIQUEMENT ce que Google permet d'automatiser :
-      1. Création du projet Google Cloud.
-      2. Activation de la « Photos Library API ».
+    This script automates ONLY what Google allows to be automated:
+      1. Creating the Google Cloud project.
+      2. Enabling the "Photos Library API".
 
-    Le reste N'EST PAS automatisable — aucune API publique, ni gcloud, ni
-    Terraform, ne peut créer un écran de consentement « Externe » ni un client
-    OAuth de type « Application de bureau » (les ressources google_iap_brand /
-    google_iap_client de Terraform ne couvrent que les organisations Workspace
-    et les clients IAP, inutilisables ici). Pour ces deux étapes, le script
-    ouvre les pages de la console : suivez l'assistant intégré de l'application
-    (onglet Paramètres → « Assistant de configuration Google Cloud... ») ou le
-    guide docs/google-cloud-setup.md.
+    The rest is NOT automatable — no public API, neither gcloud nor Terraform can
+    create an "External" consent screen or a "Desktop app" OAuth client (Terraform's
+    google_iap_brand / google_iap_client resources only cover Workspace organizations
+    and IAP clients, which are unusable here). For those two steps, the script opens
+    the console pages: follow the application's built-in wizard (Settings tab ->
+    "Google Cloud setup wizard...") or the docs/google-cloud-setup.md guide.
 
 .PARAMETER ProjectId
-    Identifiant du projet à créer (minuscules, chiffres, tirets ; unique au
-    niveau mondial). Généré automatiquement si omis.
+    Identifier of the project to create (lowercase, digits, hyphens; globally unique).
+    Generated automatically if omitted.
 
 .EXAMPLE
     .\scripts\setup-google-cloud.ps1
-    .\scripts\setup-google-cloud.ps1 -ProjectId mon-photos-uploader-42
+    .\scripts\setup-google-cloud.ps1 -ProjectId my-photos-uploader-42
 #>
 param(
     [string]$ProjectId
@@ -30,13 +28,13 @@ param(
 
 $ErrorActionPreference = "Stop"
 
-# --- Prérequis : gcloud CLI ---
+# --- Prerequisite: gcloud CLI ---
 if (-not (Get-Command gcloud -ErrorAction SilentlyContinue)) {
-    Write-Host "La CLI gcloud n'est pas installée." -ForegroundColor Yellow
-    Write-Host "Deux options :"
-    Write-Host "  1. Installer le Google Cloud SDK : https://cloud.google.com/sdk/docs/install"
-    Write-Host "  2. Ou tout faire dans le navigateur avec l'assistant intégré de l'application"
-    Write-Host "     (onglet Paramètres -> « Assistant de configuration Google Cloud... »)."
+    Write-Host "The gcloud CLI is not installed." -ForegroundColor Yellow
+    Write-Host "Two options:"
+    Write-Host "  1. Install the Google Cloud SDK: https://cloud.google.com/sdk/docs/install"
+    Write-Host "  2. Or do everything in the browser with the application's built-in wizard"
+    Write-Host "     (Settings tab -> 'Google Cloud setup wizard...')."
     exit 1
 }
 
@@ -44,42 +42,42 @@ if (-not $ProjectId) {
     $ProjectId = "photos-uploader-$(Get-Random -Minimum 100000 -Maximum 999999)"
 }
 
-# --- Authentification gcloud si nécessaire ---
-# NB : pas de redirection 2>$null directe sur une commande native ici — sous Windows
-# PowerShell 5.1 avec $ErrorActionPreference = Stop, elle transformerait le stderr de
-# gcloud en erreur fatale. On passe par cmd.exe qui gère la redirection nativement.
+# --- gcloud authentication if needed ---
+# NB: no direct 2>$null redirection on a native command here — on Windows PowerShell
+# 5.1 with $ErrorActionPreference = Stop it would turn gcloud's stderr into a fatal
+# error. We go through cmd.exe, which handles the redirection natively.
 $activeAccount = (cmd /c "gcloud auth list --filter=status:ACTIVE --format=value(account) 2>nul") -join ""
 if ($LASTEXITCODE -ne 0) { $activeAccount = "" }
 if (-not $activeAccount) {
-    Write-Host "=== Connexion Google requise (le navigateur va s'ouvrir) ===" -ForegroundColor Cyan
+    Write-Host "=== Google sign-in required (the browser will open) ===" -ForegroundColor Cyan
     gcloud auth login
     if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 }
 
-# --- 1. Création du projet ---
-Write-Host "=== Création du projet '$ProjectId' ===" -ForegroundColor Cyan
+# --- 1. Create the project ---
+Write-Host "=== Creating project '$ProjectId' ===" -ForegroundColor Cyan
 gcloud projects create $ProjectId --name="Photos Uploader"
 if ($LASTEXITCODE -ne 0) {
-    Write-Host "Échec de la création du projet (identifiant déjà pris ?). Relancez avec -ProjectId <autre-nom>." -ForegroundColor Yellow
+    Write-Host "Project creation failed (identifier already taken?). Re-run with -ProjectId <other-name>." -ForegroundColor Yellow
     exit $LASTEXITCODE
 }
 
-# --- 2. Activation de la Photos Library API ---
-Write-Host "=== Activation de la Photos Library API ===" -ForegroundColor Cyan
+# --- 2. Enable the Photos Library API ---
+Write-Host "=== Enabling the Photos Library API ===" -ForegroundColor Cyan
 gcloud services enable photoslibrary.googleapis.com --project $ProjectId
 if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
-# --- Étapes restantes : manuelles par contrainte Google ---
+# --- Remaining steps: manual, by Google constraint ---
 Write-Host ""
-Write-Host "Projet '$ProjectId' créé et API activée." -ForegroundColor Green
+Write-Host "Project '$ProjectId' created and API enabled." -ForegroundColor Green
 Write-Host ""
-Write-Host "Il reste 2 étapes que Google ne permet pas d'automatiser :" -ForegroundColor Yellow
-Write-Host "  3. Écran de consentement OAuth : type « Externes », ajoutez votre adresse en utilisateur test."
-Write-Host "  4. Client OAuth « Application de bureau » : créez-le puis téléchargez le JSON."
+Write-Host "Two steps remain that Google does not allow to be automated:" -ForegroundColor Yellow
+Write-Host "  3. OAuth consent screen: type 'External', add your address as a test user."
+Write-Host "  4. 'Desktop app' OAuth client: create it, then download the JSON."
 Write-Host ""
-Write-Host "Les deux pages vont s'ouvrir dans votre navigateur. Terminez ensuite dans l'application :"
-Write-Host "onglet Paramètres -> « Assistant de configuration Google Cloud... » (étapes 4 à 6)"
-Write-Host "ou importez directement le JSON téléchargé à la dernière étape de l'assistant."
+Write-Host "Both pages will open in your browser. Then finish in the application:"
+Write-Host "Settings tab -> 'Google Cloud setup wizard...' (steps 4 to 6)"
+Write-Host "or import the downloaded JSON directly at the last step of the wizard."
 
 Start-Process "https://console.cloud.google.com/apis/credentials/consent?project=$ProjectId"
 Start-Process "https://console.cloud.google.com/apis/credentials/oauthclient?project=$ProjectId"

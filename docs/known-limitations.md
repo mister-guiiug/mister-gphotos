@@ -1,79 +1,79 @@
-# Limites connues
+# Known limitations
 
-Ce document décrit honnêtement ce que **Google Photos Local Uploader** ne peut pas faire, et pourquoi. La plupart de ces limites ne viennent pas de l'application elle-même, mais des règles imposées par Google sur son API Photos. Elles sont énoncées ici sans détour pour que vous sachiez exactement à quoi vous attendre avant de lancer un upload.
+This document honestly describes what **Google Photos Local Uploader** cannot do, and why. Most of these limitations do not come from the application itself, but from the rules Google imposes on its Photos API. They are stated here plainly so that you know exactly what to expect before starting an upload.
 
 ---
 
-## 1. La détection de doublons ne couvre pas toute votre bibliothèque Google Photos
+## 1. Duplicate detection does not cover your entire Google Photos library
 
-C'est la limite la plus importante. L'application affiche cet avertissement dans l'onglet Paramètres :
+This is the most important limitation. The application displays this warning in the Settings tab:
 
-> « Google Photos ne permet pas à cette application de vérifier toute votre bibliothèque. La détection des doublons est garantie uniquement pour les fichiers déjà indexés localement ou uploadés par cette application. »
+> "Google Photos does not allow this application to check your entire library. Duplicate detection is guaranteed only for files already indexed locally or uploaded by this application."
 
-**Pourquoi ?** Depuis les changements de l'API Google Photos du **31 mars 2025**, Google a supprimé les autorisations (« scopes ») qui permettaient à une application tierce de lire l'ensemble de la bibliothèque d'un utilisateur. Une application ne peut désormais relire **que les médias qu'elle a elle-même créés**. Cette application utilise donc uniquement les scopes `photoslibrary.appendonly` (envoi) et `photoslibrary.readonly.appcreateddata` (relecture de ses propres envois) — il n'existe tout simplement plus de moyen technique de demander à Google : « cette photo existe-t-elle déjà quelque part dans le compte ? ».
+**Why?** Since the Google Photos API changes of **31 March 2025**, Google removed the permissions ("scopes") that allowed a third-party application to read a user's entire library. An application can now read back **only the media it created itself**. This application therefore uses only the `photoslibrary.appendonly` (upload) and `photoslibrary.readonly.appcreateddata` (reading back its own uploads) scopes — there is simply no longer any technical way to ask Google: "does this photo already exist somewhere in the account?".
 
-**Concrètement :**
+**In practice:**
 
-- Si une photo est déjà présente dans votre Google Photos parce que vous l'avez ajoutée **par un autre moyen** (application mobile, site web, autre logiciel), cette application ne peut pas le savoir. Elle risque donc de créer un doublon côté Google.
-- En revanche, la détection est fiable pour tout ce qui passe par l'application : chaque fichier scanné est identifié par son empreinte SHA-256 dans la base locale. Deux fichiers au contenu strictement identique sont détectés, et un fichier déjà envoyé par l'application n'est jamais renvoyé. Ces cas apparaissent dans l'onglet « Détails des fichiers » avec les statuts « Ignoré (doublon local) » (`skipped_duplicate_local`) et « Ignoré (déjà uploadé) » (`skipped_duplicate_remote_app_created`).
+- If a photo is already present in your Google Photos because you added it **by another means** (mobile app, website, other software), this application cannot know that. It may therefore create a duplicate on the Google side.
+- On the other hand, detection is reliable for everything that goes through the application: each scanned file is identified by its SHA-256 fingerprint in the local database. Two files with strictly identical content are detected, and a file already uploaded by the application is never uploaded again. These cases appear in the "File details" tab with the statuses "Skipped (local duplicate)" (`skipped_duplicate_local`) and "Skipped (already uploaded)" (`skipped_duplicate_remote_app_created`).
 
-## 2. Les envois consomment le stockage de votre compte Google
+## 2. Uploads consume your Google account storage
 
-Tout fichier envoyé via l'API est stocké en **qualité d'origine** et est **décompté du quota de stockage** de votre compte Google (les 15 Go gratuits, ou votre abonnement Google One). L'API ne propose pas l'option « économiseur de stockage » disponible dans les applications officielles Google Photos ; cette application ne peut donc ni compresser côté Google, ni éviter le décompte. Avant d'envoyer une grande photothèque, vérifiez l'espace disponible sur votre compte.
+Every file uploaded via the API is stored in **original quality** and is **counted against the storage quota** of your Google account (the 15 GB free tier, or your Google One subscription). The API does not offer the "storage saver" option available in the official Google Photos apps; this application can therefore neither compress on the Google side nor avoid the count. Before uploading a large photo library, check the available space on your account.
 
-## 3. Quota d'API : environ 9 500 photos par jour au maximum
+## 3. API quota: about 9,500 photos per day at most
 
-Par défaut, Google accorde à un projet Google Cloud un quota de **10 000 requêtes par jour** sur l'API Photos Library. Chaque photo coûte une requête d'envoi d'octets (`POST /v1/uploads`), puis chaque lot déclenche un appel de création (`POST /v1/mediaItems:batchCreate`). Avec la taille de lot par défaut de 20 fichiers, un lot consomme donc 21 requêtes, soit un plafond théorique d'environ **9 500 photos par jour** — moins en pratique, car chaque nouvelle tentative après une erreur consomme aussi des requêtes.
+By default, Google grants a Google Cloud project a quota of **10,000 requests per day** on the Photos Library API. Each photo costs one byte-upload request (`POST /v1/uploads`), then each batch triggers a creation call (`POST /v1/mediaItems:batchCreate`). With the default batch size of 20 files, a batch therefore consumes 21 requests, giving a theoretical ceiling of about **9,500 photos per day** — fewer in practice, because each retry after an error also consumes requests.
 
-Si le quota est atteint, Google répond par une erreur de limitation (HTTP 429 ou 403 « quota ») : l'application la journalise (« Limite de requêtes Google Photos atteinte (429). Nouvel essai automatique. »), attend en respectant l'en-tête `Retry-After` et un backoff exponentiel plafonné à 60 secondes, puis réessaie. Pour une très grande photothèque, l'envoi complet peut donc s'étaler sur plusieurs jours ; la reprise automatique est prévue pour cela.
+If the quota is reached, Google responds with a throttling error (HTTP 429 or 403 "quota"): the application logs it ("Google Photos request limit reached (429). Automatic retry."), waits while honoring the `Retry-After` header and an exponential backoff capped at 60 seconds, then retries. For a very large photo library, the full upload can therefore span several days; automatic resumption is designed for exactly this.
 
-## 4. Application OAuth en mode « Test » : reconnexion tous les 7 jours
+## 4. OAuth application in "Test" mode: reconnection every 7 days
 
-Vous créez votre propre client OAuth dans Google Cloud Console (type « Application de bureau »). Tant que l'écran de consentement de votre projet reste en statut **« Test »** (le réglage par défaut), Google **fait expirer le refresh token au bout de 7 jours**. Passé ce délai, l'application affiche « La session Google a expiré ou a été révoquée. Reconnectez votre compte. » et il faut simplement se reconnecter — rien n'est perdu, l'inventaire local et la file d'attente sont conservés.
+You create your own OAuth client in the Google Cloud Console (type "Desktop app"). As long as your project's consent screen remains in **"Test"** status (the default setting), Google **expires the refresh token after 7 days**. Past that point, the application displays "The Google session has expired or been revoked. Reconnect your account." and you simply need to reconnect — nothing is lost, the local inventory and the queue are preserved.
 
-Pour supprimer cette expiration, il faut publier l'application OAuth en « Production » dans Google Cloud Console, ce qui peut impliquer un processus de validation par Google. Ce choix appartient à l'utilisateur ; l'application fonctionne dans les deux cas.
+To remove this expiration, you have to publish the OAuth application to "Production" in the Google Cloud Console, which may involve a verification process by Google. This choice is up to the user; the application works in both cases.
 
-## 5. Pas de vidéos dans cette version (photos uniquement)
+## 5. No videos in this version (photos only)
 
-La version 1 traite **uniquement des images**. La liste d'extensions par défaut ne contient aucun format vidéo :
+Version 1 handles **images only**. The default list of extensions contains no video format:
 
 ```
 jpg,jpeg,png,webp,heic,heif,gif,tif,tiff,bmp,avif,ico,
 dng,cr2,cr3,crw,nef,nrw,arw,orf,raf,rw2,srw,pef,srf,sr2
 ```
 
-Les fichiers vidéo présents dans le dossier scanné sont simplement ignorés lors du scan. La limite de taille de 200 Mo (voir point 8) et le flux d'envoi sont eux aussi dimensionnés pour des photos.
+Video files present in the scanned folder are simply ignored during the scan. The 200 MB size limit (see point 8) and the upload flow are also sized for photos.
 
-## 6. Fichiers RAW : envoyés tels quels, compatibilité selon Google
+## 6. RAW files: uploaded as-is, compatibility depends on Google
 
-Les formats RAW (DNG, CR2, CR3, CRW, NEF, NRW, ARW, ORF, RAF, RW2, SRW, PEF, SRF, SR2) sont acceptés par le scan et envoyés à Google avec le type MIME générique `application/octet-stream` (il n'existe pas de type MIME standardisé pour chaque format RAW propriétaire). C'est ensuite **Google Photos qui décide** d'accepter ou de refuser le fichier selon sa propre liste de formats pris en charge. Si Google refuse un fichier, l'application enregistre le message exact (« Google Photos a refusé ce fichier : ... ») et le fichier passe en statut « Erreur » (`failed`), sans bloquer le reste du lot.
+RAW formats (DNG, CR2, CR3, CRW, NEF, NRW, ARW, ORF, RAF, RW2, SRW, PEF, SRF, SR2) are accepted by the scan and sent to Google with the generic MIME type `application/octet-stream` (there is no standardized MIME type for each proprietary RAW format). It is then **Google Photos that decides** whether to accept or reject the file according to its own list of supported formats. If Google rejects a file, the application records the exact message ("Google Photos rejected this file: ...") and the file moves to the "Error" status (`failed`), without blocking the rest of the batch.
 
-## 7. Aucune suppression à distance possible — et aucune suppression, jamais
+## 7. No remote deletion possible — and no deletion, ever
 
-Le scope `photoslibrary.appendonly` utilisé par l'application permet **uniquement d'ajouter** des médias. L'API ne lui donne aucun moyen de supprimer ou de modifier quoi que ce soit dans votre Google Photos — et l'application ne supprime par ailleurs **jamais** un fichier de votre disque. Comme l'indique l'onglet Paramètres :
+The `photoslibrary.appendonly` scope used by the application allows **only adding** media. The API gives it no way to delete or modify anything in your Google Photos — and the application **never** deletes a file from your disk either. As the Settings tab states:
 
-> « L'application ne supprime jamais vos photos locales ni vos médias Google Photos. La suppression ci-dessous ne concerne que l'inventaire, les journaux, les paramètres et les secrets stockés par l'application. »
+> "The application never deletes your local photos or your Google Photos media. The deletion below only concerns the inventory, logs, settings, and secrets stored by the application."
 
-Conséquence à connaître : si vous envoyez une photo par erreur, sa suppression dans Google Photos doit se faire **manuellement** (site ou application Google Photos). Le bouton « Supprimer les données locales de l'application » efface uniquement le dossier `%APPDATA%\GooglePhotosLocalUploader\` (base `app.db`, journaux `logs\`) et les secrets du Gestionnaire d'identifiants Windows — ni vos photos, ni vos médias en ligne.
+A consequence to be aware of: if you upload a photo by mistake, deleting it from Google Photos must be done **manually** (Google Photos website or app). The "Delete the application's local data" button erases only the `%APPDATA%\GooglePhotosLocalUploader\` folder (`app.db` database, `logs\` logs) and the secrets in Windows Credential Manager — neither your photos nor your online media.
 
-## 8. Limite de 200 Mo par photo
+## 8. 200 MB limit per photo
 
-Google Photos impose une taille maximale de **200 Mo par photo**. L'application applique cette limite avant tout envoi (paramètre « Taille max », par défaut 200 Mo, réglable de 1 à 200 — il n'est pas possible de la dépasser). Un fichier plus volumineux ne sera jamais envoyé.
+Google Photos imposes a maximum size of **200 MB per photo**. The application applies this limit before any upload ("Max size" setting, 200 MB by default, adjustable from 1 to 200 — it cannot be exceeded). A larger file will never be uploaded.
 
-## 9. Fichiers trop volumineux ou aux formats exclus : ignorés, avec la raison affichée
+## 9. Files that are too large or in excluded formats: skipped, with the reason displayed
 
-Tout fichier qui ne passe pas la vérification de compatibilité est marqué « Ignoré (incompatible) » (`skipped_incompatible`) — il n'est ni envoyé, ni supprimé, ni bloquant pour les autres. La raison exacte est enregistrée et visible dans l'onglet « Détails des fichiers » (filtre « Ignorés (incompatible) ») :
+Any file that fails the compatibility check is marked "Skipped (incompatible)" (`skipped_incompatible`) — it is neither uploaded, nor deleted, nor blocking for the others. The exact reason is recorded and visible in the "File details" tab (filter "Skipped (incompatible)"):
 
-- « Extension .xxx non prise en charge » — l'extension ne figure pas dans la liste configurée ;
-- « Fichier vide » — fichier de 0 octet ;
-- « Fichier trop volumineux (NNN Mo, limite 200 Mo) » — au-delà de la taille maximale.
+- "Extension .xxx not supported" — the extension is not in the configured list;
+- "Empty file" — 0-byte file;
+- "File too large (NNN MB, limit 200 MB)" — beyond the maximum size.
 
-La liste d'extensions étant configurable dans les Paramètres, un fichier ignoré pour son extension peut être repris lors d'un scan ultérieur si vous ajoutez son extension à la liste.
+Since the extension list is configurable in Settings, a file skipped for its extension can be picked up in a later scan if you add its extension to the list.
 
-## 10. La création du client OAuth ne peut pas être automatisée
+## 10. OAuth client creation cannot be automated
 
-Google n'expose **aucune API publique** permettant de créer un écran de consentement « Externes » ou un client OAuth de type « Application de bureau » : ni la CLI `gcloud`, ni Terraform (les ressources `google_iap_brand` / `google_iap_client` ne couvrent que les organisations Google Workspace et les clients IAP) ne peuvent produire les identifiants dont l'application a besoin. C'est pourquoi l'application fournit un **assistant intégré** (onglet « Paramètres » → « Assistant de configuration Google Cloud... ») qui guide la création dans la console, ouvre directement les bonnes pages et importe le fichier `client_secret_….json` téléchargé, ainsi qu'un script optionnel `scripts\setup-google-cloud.ps1` qui automatise la seule partie automatisable (création du projet + activation de l'API, via `gcloud`).
+Google exposes **no public API** for creating an "External" consent screen or a "Desktop app" OAuth client: neither the `gcloud` CLI nor Terraform (the `google_iap_brand` / `google_iap_client` resources only cover Google Workspace organizations and IAP clients) can produce the credentials the application needs. This is why the application provides a **built-in wizard** (Settings tab -> "Google Cloud setup wizard...") that guides creation in the console, opens the correct pages directly, and imports the downloaded `client_secret_….json` file, along with an optional `scripts\setup-google-cloud.ps1` script that automates the only part that can be automated (project creation + API enablement, via `gcloud`).
 
 ---
 
-*Document mis à jour pour la version 1 de l'application. Les comportements décrits ici correspondent au code source vérifié (services `GooglePhotosApi`, `GoogleAuthService`, `UploadService`, `FileScanner`, `CompatibilityChecker`) et aux règles de l'API Google Photos en vigueur depuis le 31 mars 2025.*
+*Document updated for version 1 of the application. The behaviors described here match the verified source code (services `GooglePhotosApi`, `GoogleAuthService`, `UploadService`, `FileScanner`, `CompatibilityChecker`) and the Google Photos API rules in effect since 31 March 2025.*

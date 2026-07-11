@@ -2,6 +2,7 @@ using System.Net;
 using System.Text;
 using System.Text.Json;
 using GPhotosUploader.Core.Models;
+using GPhotosUploader.Core.Resources;
 
 namespace GPhotosUploader.Core.Services;
 
@@ -66,20 +67,18 @@ public class GooglePhotosApi
         catch (TaskCanceledException) when (!ct.IsCancellationRequested)
         {
             // Timeout du HttpClient (et non annulation utilisateur) : erreur temporaire.
-            throw new GooglePhotosApiException(0,
-                "Délai d'attente HTTP dépassé pendant l'upload des octets. Nouvel essai automatique.",
-                isTransient: true);
+            throw new GooglePhotosApiException(0, Loc.T("Api_HttpTimeoutUpload"), isTransient: true);
         }
         using (response)
         {
             body = await response.Content.ReadAsStringAsync(ct);
             if (!response.IsSuccessStatusCode)
-                throw ClassifyError(response, body, "upload des octets");
+                throw ClassifyError(response, body, Loc.T("Api_Op_UploadBytes"));
         }
 
         var token = body.Trim();
         if (token.Length == 0)
-            throw new GooglePhotosApiException(0, "Upload token vide retourné par Google.", isTransient: true);
+            throw new GooglePhotosApiException(0, Loc.T("Api_EmptyUploadToken"), isTransient: true);
         return token;
     }
 
@@ -89,7 +88,7 @@ public class GooglePhotosApi
     {
         if (items.Count == 0) return new List<BatchCreateItemResult>();
         if (items.Count > AppSettings.MaxBatchSize)
-            throw new ArgumentException($"batchCreate accepte au maximum {AppSettings.MaxBatchSize} éléments.");
+            throw new ArgumentException(Loc.TF("Api_BatchTooMany", AppSettings.MaxBatchSize));
 
         var payload = new
         {
@@ -111,23 +110,21 @@ public class GooglePhotosApi
         }
         catch (TaskCanceledException) when (!ct.IsCancellationRequested)
         {
-            throw new GooglePhotosApiException(0,
-                "Délai d'attente HTTP dépassé pendant batchCreate. Nouvel essai automatique.",
-                isTransient: true);
+            throw new GooglePhotosApiException(0, Loc.T("Api_HttpTimeoutBatch"), isTransient: true);
         }
         string body;
         using (response)
         {
             body = await response.Content.ReadAsStringAsync(ct);
             if (!response.IsSuccessStatusCode)
-                throw ClassifyError(response, body, "batchCreate");
+                throw ClassifyError(response, body, Loc.T("Api_Op_BatchCreate"));
         }
 
         var results = new List<BatchCreateItemResult>();
         using var json = JsonDocument.Parse(body);
         if (!json.RootElement.TryGetProperty("newMediaItemResults", out var resultArray))
             throw new GooglePhotosApiException((int)response.StatusCode,
-                "Réponse batchCreate inattendue (newMediaItemResults absent).", isTransient: false);
+                Loc.T("Api_UnexpectedBatchResponse"), isTransient: false);
 
         foreach (var item in resultArray.EnumerateArray())
         {
@@ -148,13 +145,13 @@ public class GooglePhotosApi
                 var code = status.TryGetProperty("code", out var c) ? c.GetInt32() : -1;
                 var message = status.TryGetProperty("message", out var m) ? m.GetString() : null;
                 if (code == 0 && mediaItemId is null)
-                    error = "Statut OK mais aucun mediaItem retourné.";
+                    error = Loc.T("Api_StatusOkNoMedia");
                 else
-                    error = $"Google Photos a refusé ce fichier : {message ?? "erreur inconnue"} (code {code})";
+                    error = Loc.TF("Api_RejectedFile", message ?? Loc.T("Api_UnknownError"), code);
             }
             else if (!success)
             {
-                error = "Réponse batchCreate sans statut ni mediaItem.";
+                error = Loc.T("Api_NoStatusNoMedia");
             }
 
             results.Add(new BatchCreateItemResult(uploadToken, success, mediaItemId, error));
@@ -181,12 +178,12 @@ public class GooglePhotosApi
 
         var message = status switch
         {
-            401 => "Session Google expirée (401).",
-            403 when transient => $"Quota ou limite de débit Google Photos atteint : {detail}",
-            403 => $"Accès refusé par Google Photos : {detail}",
-            429 => "Limite de requêtes Google Photos atteinte (429). Nouvel essai automatique.",
-            >= 500 => $"Erreur serveur Google Photos ({status}). Nouvel essai automatique.",
-            _ => $"Erreur Google Photos lors de {operation} ({status}) : {detail}"
+            401 => Loc.T("Api_401"),
+            403 when transient => Loc.TF("Api_403_Quota", detail),
+            403 => Loc.TF("Api_403_Denied", detail),
+            429 => Loc.T("Api_429"),
+            >= 500 => Loc.TF("Api_5xx", status),
+            _ => Loc.TF("Api_Generic", operation, status, detail)
         };
         return new GooglePhotosApiException(status, message, transient, retryAfter);
     }

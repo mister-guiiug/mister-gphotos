@@ -1,207 +1,209 @@
-# Guide utilisateur — Google Photos Local Uploader
+# User guide — Google Photos Local Uploader
 
-Ce guide s'adresse à l'utilisateur final de **Google Photos Local Uploader**, l'application Windows (10/11) qui scanne un dossier local d'images, les indexe, puis les envoie par lots vers votre compte Google Photos, avec reprise automatique après interruption.
+This guide is intended for the end user of **Google Photos Local Uploader**, the Windows (10/11) application that scans a local image folder, indexes the files, and then uploads them in batches to your Google Photos account, with automatic resumption after an interruption.
 
-> **À savoir avant de commencer — limites assumées de l'application**
+The interface language follows your Windows display language (English by default, French also available); it is not tied to a single language.
+
+> **Before you begin — the application's known limitations**
 >
-> - Depuis les changements de l'API Google Photos du 31 mars 2025, une application tierce ne peut lire **que les médias qu'elle a elle-même créés**. Comme l'indique l'onglet **Paramètres** : « Google Photos ne permet pas à cette application de vérifier toute votre bibliothèque. La détection des doublons est garantie uniquement pour les fichiers déjà indexés localement ou uploadés par cette application. » Si une photo existe déjà dans Google Photos parce que vous l'avez ajoutée par un autre moyen (téléphone, site web…), l'application ne peut pas le savoir et l'enverra à nouveau.
-> - Les photos envoyées comptent dans le **stockage de votre compte Google** (qualité d'origine). L'API ne propose pas l'option « économiseur de stockage ».
-> - La limite Google Photos par photo est de **200 Mo**.
-> - L'application **ne supprime jamais** vos fichiers locaux ni vos médias Google Photos.
-> - Vous devez créer **votre propre client OAuth** dans Google Cloud Console (type « Application de bureau »). La procédure détaillée est décrite dans le guide `docs/google-cloud-setup.md`. Aucun mot de passe Google ne vous est jamais demandé dans l'application : la connexion se fait dans votre navigateur.
+> - Since the Google Photos API changes of 31 March 2025, a third-party application can only read **the media it created itself**. As the **Settings** tab states: "Google Photos does not allow this application to check your entire library. Duplicate detection is guaranteed only for files already indexed locally or uploaded by this application." If a photo already exists in Google Photos because you added it by other means (phone, website, etc.), the application cannot know this and will upload it again.
+> - Uploaded photos count toward your **Google account storage** (original quality). The API does not offer the "storage saver" option.
+> - The Google Photos limit per photo is **200 MB**.
+> - The application **never deletes** your local files or your Google Photos media.
+> - You must create **your own OAuth client** in the Google Cloud Console (type "Desktop application"). The detailed procedure is described in the `docs/google-cloud-setup.md` guide. You are never asked for a Google password inside the application: sign-in takes place in your browser.
 
 ---
 
-## 1. Tour de l'interface
+## 1. Interface overview
 
-La fenêtre principale, intitulée **Google Photos Local Uploader**, se compose de quatre zones, de haut en bas.
+The main window, titled **Google Photos Local Uploader**, is made up of four areas, from top to bottom.
 
-### 1.1 Zone « Configuration »
+### 1.1 "Configuration" area
 
-| Élément | Rôle |
+| Element | Purpose |
 |---|---|
-| **Dossier racine :** | Chemin du dossier contenant vos photos (lecture seule dans le champ). |
-| **Parcourir...** | Ouvre un sélecteur de dossier (« Choisir le dossier racine contenant vos photos »). Le choix est enregistré immédiatement. |
-| **Compte Google :** | Affiche « Aucun compte connecté » ou « Connecté : votre@email ». |
-| **Connecter mon compte Google** | Lance l'autorisation OAuth dans votre navigateur par défaut. |
-| **Déconnecter** | Révoque et supprime le refresh token (voir section 8). |
+| **Root folder:** | Path of the folder containing your photos (read-only in the field). |
+| **Browse...** | Opens a folder picker ("Choose the root folder containing your photos"). The choice is saved immediately. |
+| **Google account:** | Displays "No account connected" or "Connected: your@email". |
+| **Connect my Google account** | Starts the OAuth authorization in your default browser. |
+| **Disconnect** | Revokes and removes the refresh token (see section 8). |
 
-### 1.2 Barre d'actions
+### 1.2 Action bar
 
-Cinq boutons : **Scanner le dossier**, **Démarrer l'upload**, **Pause**, **Reprendre**, **Arrêter**. Chaque bouton n'est actif que lorsque l'action est possible (par exemple, **Reprendre** n'est cliquable qu'en pause).
+Five buttons: **Scan the folder**, **Start upload**, **Pause**, **Resume**, **Stop**. Each button is enabled only when its action is possible (for example, **Resume** is clickable only while paused).
 
-### 1.3 Zone « Progression »
+### 1.3 "Progress" area
 
-- Une barre de progression globale avec le texte du type « 42,5 % (850 uploadés / 2000 fichiers) ».
-- Les compteurs : **Détectés**, **En attente**, **Uploadés** (vert), **Ignorés** (orange), **Erreurs** (rouge).
-- Une barre de progression du fichier en cours, avec son nom et les octets envoyés (par exemple « IMG_0042.jpg — 3,2 Mo / 8,1 Mo »).
-- Le débit (« Débit : 2,4 Mo/s ») et l'estimation « Temps restant estimé : 1 h 05 min ».
-- La dernière erreur rencontrée, en rouge.
+- A global progress bar with text such as "42.5% (850 uploaded / 2000 files)".
+- The counters: **Detected**, **Pending**, **Uploaded** (green), **Skipped** (orange), **Errors** (red).
+- A progress bar for the current file, with its name and the bytes sent (for example "IMG_0042.jpg — 3.2 MB / 8.1 MB").
+- The throughput ("Throughput: 2.4 MB/s") and the estimate "Estimated time remaining: 1 h 05 min".
+- The most recent error encountered, in red.
 
-### 1.4 La barre d'état (bas de fenêtre)
+### 1.4 The state bar (bottom of the window)
 
-Elle affiche l'état courant (**Prêt**, **Scan en cours**, **Upload en cours**, **Upload en pause**, **Arrêt en cours...**) suivi du dernier message d'information (fin de scan, paramètres enregistrés, etc.).
+It shows the current state (**Ready**, **Scanning**, **Uploading**, **Upload paused**, **Stopping...**) followed by the latest information message (scan finished, settings saved, etc.).
 
-### 1.5 Les quatre onglets
+### 1.5 The four tabs
 
-#### Onglet « Journal »
-Le fil d'activité en temps réel (police à chasse fixe) : connexions, scans, uploads réussis, avertissements et erreurs. Les 500 dernières lignes sont conservées à l'écran ; l'historique complet reste disponible via l'export (section 7) et les fichiers journaux sur disque.
+#### "Log" tab
+The real-time activity feed (fixed-width font): connections, scans, successful uploads, warnings and errors. The last 500 lines are kept on screen; the full history remains available through the export (section 7) and the log files on disk.
 
-#### Onglet « Détails des fichiers »
-La liste des fichiers indexés (jusqu'à 2 000 lignes affichées) avec les colonnes **Fichier**, **Statut**, **Taille**, **Uploadé le**, **Erreur / raison**, **Chemin**.
+#### "File details" tab
+The list of indexed files (up to 2,000 rows displayed) with the columns **File**, **Status**, **Size**, **Uploaded at**, **Error / reason**, **Path**.
 
-- **Filtre :** liste déroulante avec les valeurs **Tous**, **En attente**, **Uploadés**, **Erreurs**, **Ignorés (doublon local)**, **Ignorés (déjà uploadé)**, **Ignorés (incompatible)**.
-- **Actualiser** : recharge la liste.
-- **Relancer les fichiers en erreur** : voir section 6.
+- **Filter:** drop-down list with the values **All**, **Pending**, **Uploaded**, **Errors**, **Skipped (local duplicate)**, **Skipped (already uploaded)**, **Skipped (incompatible)**.
+- **Refresh**: reloads the list.
+- **Retry failed files**: see section 6.
 
-#### Onglet « Historique »
-La liste des 100 derniers lots (batchs) d'upload : **Batch**, **Démarré**, **Terminé**, **Fichiers**, **Réussis**, **Échecs**, **Statut** (« Terminé », « Arrêté » ou « En cours »). Deux boutons : **Actualiser** et **Exporter le journal...** (section 7).
+#### "History" tab
+The list of the last 100 upload batches: **Batch**, **Started**, **Completed**, **Files**, **Succeeded**, **Failed**, **Status** ("Completed", "Stopped" or "In progress"). Two buttons: **Refresh** and **Export the log...** (section 7).
 
-#### Onglet « Paramètres »
+#### "Settings" tab
 
-- **Authentification Google** : bouton **« Assistant de configuration Google Cloud... »** (assistant en 6 étapes qui ouvre les bonnes pages de la console et importe le fichier `client_secret_….json` téléchargé), et champs **Client ID OAuth :** / **Client Secret OAuth :** pour une saisie manuelle. Le refresh token et le client secret sont conservés dans le Gestionnaire d'identifiants Windows, jamais en clair.
-- **Upload** :
-  - **Taille du batch (1 à 50 fichiers) :** — 20 par défaut (50 est la limite dure de l'API Google).
-  - **Tentatives max en cas d'erreur temporaire :** — 5 par défaut (borné de 0 à 20).
-  - **Uploads simultanés (1 à 3) :** — 2 par défaut.
-  - **Taille max par photo (Mo, limite Google : 200) :** — 200 par défaut.
-- **Formats inclus** : extensions séparées par des virgules, sans point. Par défaut : `jpg,jpeg,png,webp,heic,heif,gif,tif,tiff,bmp,avif,ico,dng,cr2,cr3,crw,nef,nrw,arw,orf,raf,rw2,srw,pef,srf,sr2`. Retirez une extension pour exclure un format ; ajoutez-en une pour l'inclure.
-- **Enregistrer les paramètres** : applique et enregistre les valeurs (les valeurs hors bornes sont automatiquement ramenées dans les limites).
-- **Détection des doublons** : l'encadré orange rappelant la limite de l'API (texte cité en tête de ce guide).
-- **Données locales** : le bouton **Supprimer les données locales de l'application** (section 9).
-
----
-
-## 2. Première utilisation, pas à pas
-
-1. **Créez votre client OAuth Google** : lancez l'application, ouvrez l'onglet **Paramètres** et cliquez sur **« Assistant de configuration Google Cloud... »**. L'assistant vous guide en 6 étapes (projet Google Cloud, activation de la Photos Library API, écran de consentement, client OAuth « Application de bureau ») en ouvrant les bonnes pages de la console, puis importe le fichier `client_secret_….json` téléchargé — les identifiants sont alors enregistrés automatiquement (le Client Secret part dans le Gestionnaire d'identifiants Windows).
-2. **Alternative manuelle** : suivez `docs/google-cloud-setup.md`, renseignez **Client ID OAuth :** et **Client Secret OAuth :** dans l'onglet **Paramètres**, puis cliquez sur **Enregistrer les paramètres**.
-3. Cliquez sur **Connecter mon compte Google**. Votre navigateur s'ouvre sur la page d'autorisation Google ; connectez-vous et acceptez les autorisations demandées (ajout de photos et lecture des médias créés par l'application uniquement). Une page « Connexion réussie » s'affiche : vous pouvez fermer la fenêtre du navigateur. Vous disposez de 5 minutes ; au-delà, le message « Délai d'autorisation dépassé (5 minutes). Réessayez. » apparaît.
-4. De retour dans l'application, la zone Configuration affiche « Connecté : votre@email ».
-5. Cliquez sur **Parcourir...** et choisissez le dossier racine contenant vos photos. Tous les sous-dossiers seront parcourus.
-6. Cliquez sur **Scanner le dossier**. L'application énumère les images, calcule une empreinte (hash SHA-256) de chaque fichier et alimente son inventaire local. La barre d'état indique la progression puis un résumé : « Scan terminé : N images vues, N nouvelles, N doublons, N incompatibles. »
-7. Cliquez sur **Démarrer l'upload**. Les fichiers en attente sont envoyés par lots (20 par défaut). Suivez l'avancement dans la zone Progression et l'onglet **Journal**.
-8. À la fin, un résumé s'affiche : « Upload terminé : N uploadé(s), N en erreur, N ignoré(s). »
-
-Vous pouvez relancer **Scanner le dossier** à tout moment (par exemple après avoir ajouté des photos) : un fichier déjà connu et inchangé n'est pas re-analysé, et un fichier déjà uploadé n'est jamais renvoyé.
+- **Google authentication**: the **"Google Cloud setup wizard..."** button (a 6-step wizard that opens the right console pages and imports the downloaded `client_secret_….json` file), and the **OAuth Client ID:** / **OAuth Client Secret:** fields for manual entry. The refresh token and the client secret are stored in Windows Credential Manager, never in plain text.
+- **Upload**:
+  - **Batch size (1 to 50 files):** — 20 by default (50 is the hard limit of the Google API).
+  - **Max attempts on temporary error:** — 5 by default (bounded from 0 to 20).
+  - **Concurrent uploads (1 to 3):** — 2 by default.
+  - **Max size per photo (MB, Google limit: 200):** — 200 by default.
+- **Included formats**: extensions separated by commas, without a dot. Default: `jpg,jpeg,png,webp,heic,heif,gif,tif,tiff,bmp,avif,ico,dng,cr2,cr3,crw,nef,nrw,arw,orf,raf,rw2,srw,pef,srf,sr2`. Remove an extension to exclude a format; add one to include it.
+- **Save settings**: applies and saves the values (out-of-range values are automatically brought back within the limits).
+- **Duplicate detection**: the orange box recalling the API limitation (the text quoted at the top of this guide).
+- **Local data**: the **Delete the application's local data** button (section 9).
 
 ---
 
-## 3. Pause, reprise, arrêt
+## 2. First use, step by step
 
-- **Pause** : suspend l'upload. Le transfert du fichier en cours se termine d'abord, comme l'indique le journal : « Upload mis en pause. Le fichier en cours se termine avant l'arrêt effectif. » L'état passe à **Upload en pause**.
-- **Reprendre** : repart exactement là où la pause a eu lieu, sans rien renvoyer.
-- **Arrêter** : interrompt l'upload (ou le scan) en cours. Les fichiers qui étaient en train d'être envoyés sont marqués **En pause** dans l'inventaire, et le message « Upload arrêté. Les fichiers en cours reprendront au prochain démarrage. » s'affiche. Cliquer à nouveau sur **Démarrer l'upload** reprend le travail restant.
+1. **Create your Google OAuth client**: launch the application, open the **Settings** tab and click **"Google Cloud setup wizard..."**. The wizard guides you through 6 steps (Google Cloud project, enabling the Photos Library API, consent screen, "Desktop application" OAuth client) by opening the right console pages, then imports the downloaded `client_secret_….json` file — the credentials are then saved automatically (the Client Secret goes into Windows Credential Manager).
+2. **Manual alternative**: follow `docs/google-cloud-setup.md`, fill in **OAuth Client ID:** and **OAuth Client Secret:** in the **Settings** tab, then click **Save settings**.
+3. Click **Connect my Google account**. Your browser opens the Google authorization page; sign in and accept the requested permissions (adding photos and reading only the media created by the application). A "Connection successful" page appears: you can close the browser window. You have 5 minutes; beyond that, the message "Authorization timed out (5 minutes). Please try again." appears.
+4. Back in the application, the Configuration area displays "Connected: your@email".
+5. Click **Browse...** and choose the root folder containing your photos. All subfolders will be scanned.
+6. Click **Scan the folder**. The application enumerates the images, computes a fingerprint (SHA-256 hash) for each file and populates its local inventory. The state bar shows the progress and then a summary: "Scan complete: N images seen, N new, N duplicates, N incompatible."
+7. Click **Start upload**. The pending files are sent in batches (20 by default). Follow the progress in the Progress area and the **Log** tab.
+8. At the end, a summary appears: "Upload complete: N uploaded, N failed, N skipped."
 
----
-
-## 4. Reprise après fermeture ou crash
-
-L'inventaire est enregistré dans une base SQLite à chaque changement d'état : la reprise est donc fiable même après un crash ou une coupure de courant.
-
-- **Fermeture normale de la fenêtre** : l'application arrête proprement le scan et l'upload avant de se fermer ; les fichiers en cours passent en **En pause**.
-- **Au démarrage suivant** : tout fichier resté marqué « en cours d'upload » (cas d'un crash) est automatiquement remis en file d'attente. Le journal l'indique : « Reprise après interruption : N fichier(s) remis en file d'attente. »
-- **Au clic sur Démarrer l'upload** : les fichiers **En pause** sont également remis en file, puis l'envoi reprend.
-- **Optimisation** : si un fichier avait déjà été transféré chez Google mais pas encore finalisé (crash entre l'envoi des octets et la création du média), son jeton d'upload est conservé. S'il a moins de 20 heures, il est réutilisé **sans renvoyer les octets** (Google annonce une validité d'environ 24 h ; l'application garde une marge de sécurité). Le journal indique alors : « Upload token réutilisé pour … (octets déjà envoyés). »
+You can run **Scan the folder** again at any time (for example after adding photos): a file that is already known and unchanged is not re-analyzed, and a file that has already been uploaded is never sent again.
 
 ---
 
-## 5. Lire les statuts des fichiers
+## 3. Pause, resume, stop
 
-Statuts affichés dans la colonne **Statut** de l'onglet **Détails des fichiers** :
+- **Pause**: suspends the upload. The transfer of the current file finishes first, as the log indicates: "Upload paused. The current file will finish before actually stopping." The state changes to **Upload paused**.
+- **Resume**: picks up exactly where the pause occurred, without sending anything again.
+- **Stop**: interrupts the ongoing upload (or scan). Files that were being sent are marked **Paused** in the inventory, and the message "Upload stopped. Files in progress will resume at the next start." appears. Clicking **Start upload** again resumes the remaining work.
 
-| Statut affiché | Signification |
+---
+
+## 4. Resuming after a close or crash
+
+The inventory is saved to a SQLite database at every state change: resumption is therefore reliable even after a crash or a power outage.
+
+- **Normal window close**: the application cleanly stops the scan and the upload before closing; files in progress switch to **Paused**.
+- **On the next start**: any file still marked "uploading" (in the case of a crash) is automatically put back in the queue. The log indicates this: "Resumed after interruption: N file(s) put back in the queue."
+- **When you click Start upload**: **Paused** files are also put back in the queue, and then the upload resumes.
+- **Optimization**: if a file had already been transferred to Google but not yet finalized (a crash between sending the bytes and creating the media), its upload token is kept. If it is less than 20 hours old, it is reused **without resending the bytes** (Google states a validity of about 24 h; the application keeps a safety margin). The log then indicates: "Upload token reused for … (bytes already sent)."
+
+---
+
+## 5. Reading file statuses
+
+Statuses shown in the **Status** column of the **File details** tab:
+
+| Status displayed | Meaning |
 |---|---|
-| **Détecté** | Fichier repéré par le scan, pas encore mis en file d'attente (état transitoire). |
-| **En attente** | Fichier prêt à être uploadé au prochain passage. |
-| **Upload en cours** | Fichier en cours de transfert vers Google Photos. |
-| **Uploadé** | Fichier créé avec succès dans Google Photos. La colonne **Uploadé le** indique la date. Il ne sera jamais renvoyé. |
-| **Ignoré (doublon local)** | Un autre fichier local a exactement le même contenu (même hash SHA-256). Seul l'original sera envoyé ; la colonne **Erreur / raison** indique le chemin du fichier d'origine. |
-| **Ignoré (déjà uploadé)** | Un fichier au contenu identique a déjà été envoyé **par cette application**. Rien n'est renvoyé. |
-| **Ignoré (incompatible)** | Extension non incluse dans les paramètres, fichier vide, ou fichier dépassant la taille maximale (raison précisée dans **Erreur / raison**, par exemple « Fichier trop volumineux (250 Mo, limite 200 Mo) »). |
-| **Erreur** | L'upload a échoué (raison dans **Erreur / raison**). Les erreurs temporaires sont retentées automatiquement tant que le nombre de tentatives reste sous le maximum configuré (5 par défaut). |
-| **En pause** | Fichier interrompu par une pause, un arrêt ou une fermeture ; il reprendra au prochain **Démarrer l'upload**. |
+| **Detected** | File spotted by the scan, not yet queued (transient state). |
+| **Pending** | File ready to be uploaded on the next pass. |
+| **Uploading** | File currently being transferred to Google Photos. |
+| **Uploaded** | File successfully created in Google Photos. The **Uploaded at** column shows the date. It will never be sent again. |
+| **Skipped (local duplicate)** | Another local file has exactly the same content (same SHA-256 hash). Only the original will be sent; the **Error / reason** column shows the path of the original file. |
+| **Skipped (already uploaded)** | A file with identical content has already been sent **by this application**. Nothing is sent again. |
+| **Skipped (incompatible)** | Extension not included in the settings, empty file, or file exceeding the maximum size (the reason is given in **Error / reason**, for example "File too large (250 MB, limit 200 MB)"). |
+| **Error** | The upload failed (reason in **Error / reason**). Temporary errors are retried automatically as long as the number of attempts stays under the configured maximum (5 by default). |
+| **Paused** | File interrupted by a pause, a stop or a close; it will resume at the next **Start upload**. |
 
-Le compteur **En attente** de la zone Progression regroupe les fichiers *Détecté*, *En attente*, *Upload en cours* et *En pause* ; **Ignorés** regroupe les trois statuts « Ignoré (…) ».
-
----
-
-## 6. Relancer les fichiers en erreur
-
-Pendant un upload, chaque erreur temporaire (réseau, quota, serveur) est retentée automatiquement avec un délai croissant (backoff exponentiel plafonné à 60 secondes, consigne « Retry-After » de Google respectée). Un fichier qui a épuisé ses tentatives (5 par défaut, réglable dans **Paramètres**) reste en statut **Erreur**.
-
-Pour le relancer :
-
-1. Ouvrez l'onglet **Détails des fichiers** (filtre **Erreurs** pour ne voir qu'eux et lire la colonne **Erreur / raison**).
-2. Corrigez la cause si nécessaire (réseau rétabli, fichier remis à sa place, extension réactivée…).
-3. Cliquez sur **Relancer les fichiers en erreur**. Le compteur de tentatives est remis à zéro et tous les fichiers en erreur repassent **En attente**. La barre d'état confirme : « N fichier(s) en erreur remis en file d'attente. »
-4. Cliquez sur **Démarrer l'upload**.
+The **Pending** counter in the Progress area groups the *Detected*, *Pending*, *Uploading* and *Paused* files; **Skipped** groups the three "Skipped (…)" statuses.
 
 ---
 
-## 7. Exporter le journal
+## 6. Retrying failed files
 
-Dans l'onglet **Historique**, cliquez sur **Exporter le journal...**. Une boîte d'enregistrement propose un nom du type `google-photos-uploader-journal-20260711-1430.txt`. Le fichier contient les 10 000 entrées les plus récentes du journal (horodatage, niveau, source, message).
+During an upload, each temporary error (network, quota, server) is retried automatically with an increasing delay (exponential backoff capped at 60 seconds, honoring Google's "Retry-After" directive). A file that has exhausted its attempts (5 by default, adjustable in **Settings**) stays in the **Error** status.
 
-Indépendamment de cet export, l'application écrit aussi un fichier journal quotidien sur disque : `%APPDATA%\GooglePhotosLocalUploader\logs\app-AAAAMMJJ.log`. Les entrées en base de plus de 90 jours sont purgées automatiquement au démarrage.
+To retry it:
 
----
-
-## 8. Déconnecter le compte Google
-
-Cliquez sur **Déconnecter** dans la zone Configuration. Une confirmation s'affiche : « Déconnecter le compte Google ? Le refresh token sera révoqué et supprimé du Gestionnaire d'identifiants Windows. »
-
-En confirmant :
-
-- le refresh token est révoqué auprès de Google (si vous êtes hors ligne, la révocation distante est simplement ignorée, mais le refresh token local est tout de même effacé) ;
-- le **Client Secret est conservé** dans le Gestionnaire d'identifiants Windows : vous pouvez reconnecter un compte (le même ou un autre) sans le retaper. Il n'est effacé que par « Supprimer les données locales de l'application » ;
-- le refresh token et le client secret sont supprimés du Gestionnaire d'identifiants Windows ;
-- l'application affiche à nouveau « Aucun compte connecté ».
-
-Votre inventaire local (fichiers déjà uploadés, historique) est conservé. Vous pouvez reconnecter le même compte ou un autre à tout moment.
-
-> Vous pouvez aussi révoquer l'accès de l'application depuis votre compte Google (myaccount.google.com, section Sécurité). Dans ce cas, l'application affichera au prochain upload : « Session Google expirée : reconnectez votre compte puis relancez l'upload. »
+1. Open the **File details** tab (use the **Errors** filter to see only those and read the **Error / reason** column).
+2. Fix the cause if needed (network restored, file put back in place, extension re-enabled, etc.).
+3. Click **Retry failed files**. The attempt counter is reset to zero and all failed files return to **Pending**. The state bar confirms: "N failed file(s) put back in the queue."
+4. Click **Start upload**.
 
 ---
 
-## 9. Supprimer les données locales de l'application
+## 7. Exporting the log
 
-Dans l'onglet **Paramètres**, section **Données locales**, cliquez sur **Supprimer les données locales de l'application**. Après confirmation, l'application :
+In the **History** tab, click **Export the log...**. A save dialog proposes a name such as `google-photos-uploader-log-20260711-1430.txt`. The file contains the 10,000 most recent log entries (timestamp, level, source, message).
 
-1. arrête tout upload en cours ;
-2. déconnecte le compte Google et efface les secrets du Gestionnaire d'identifiants Windows ;
-3. supprime le dossier `%APPDATA%\GooglePhotosLocalUploader\` (base de données `app.db` : inventaire, historique, paramètres, journaux) ;
-4. se ferme.
+Independently of this export, the application also writes a daily log file to disk: `%APPDATA%\GooglePhotosLocalUploader\logs\app-YYYYMMDD.log`. Database entries older than 90 days are purged automatically at startup.
 
-Comme le rappelle la boîte de confirmation : **vos photos locales et vos médias Google Photos ne sont PAS touchés**. En revanche, l'application perd la mémoire de ce qui a déjà été uploadé : après un nouveau scan, les fichiers seront considérés comme jamais envoyés et seraient renvoyés (créant des doublons côté Google, que l'API ne permet pas de détecter).
+---
+
+## 8. Disconnecting the Google account
+
+Click **Disconnect** in the Configuration area. A confirmation appears: "Disconnect the Google account? The refresh token will be revoked and removed from Windows Credential Manager."
+
+When you confirm:
+
+- the refresh token is revoked with Google (if you are offline, the remote revocation is simply ignored, but the local refresh token is erased anyway);
+- the **Client Secret is kept** in Windows Credential Manager: you can reconnect an account (the same one or another) without retyping it. It is erased only by "Delete the application's local data";
+- the refresh token and the client secret are removed from Windows Credential Manager;
+- the application again displays "No account connected".
+
+Your local inventory (files already uploaded, history) is kept. You can reconnect the same account or a different one at any time.
+
+> You can also revoke the application's access from your Google account (myaccount.google.com, Security section). In that case, the application will display on the next upload: "Google session expired: reconnect your account then restart the upload."
+
+---
+
+## 9. Deleting the application's local data
+
+In the **Settings** tab, **Local data** section, click **Delete the application's local data**. After confirmation, the application:
+
+1. stops any ongoing upload;
+2. disconnects the Google account and erases the secrets from Windows Credential Manager;
+3. deletes the `%APPDATA%\GooglePhotosLocalUploader\` folder (the `app.db` database: inventory, history, settings, logs);
+4. closes.
+
+As the confirmation dialog reminds you: **your local photos and your Google Photos media are NOT touched**. However, the application loses the memory of what has already been uploaded: after a new scan, the files will be considered never sent and would be uploaded again (creating duplicates on Google's side, which the API does not allow to be detected).
 
 ---
 
 ## 10. FAQ
 
-**Que se passe-t-il si je déplace ou supprime un fichier après le scan ?**
-Si le fichier n'existe plus au moment de son upload, il passe en statut **Erreur** avec la raison « Fichier introuvable (déplacé ou supprimé depuis le scan). » et n'est plus retenté automatiquement. Lors d'un nouveau scan, les fichiers non retrouvés (et non encore uploadés) sont marqués « disparus » dans l'inventaire. Si le fichier a été déplacé ailleurs **dans le dossier racine**, le scan le retrouve sous son nouveau chemin ; grâce au hash SHA-256, s'il avait déjà été uploadé par l'application, il est marqué **Ignoré (déjà uploadé)** et n'est pas renvoyé.
+**What happens if I move or delete a file after the scan?**
+If the file no longer exists at the time of its upload, it switches to the **Error** status with the reason "File not found (moved or deleted since the scan)." and is no longer retried automatically. During a new scan, files that are not found (and not yet uploaded) are marked "missing" in the inventory. If the file was moved elsewhere **within the root folder**, the scan finds it under its new path; thanks to the SHA-256 hash, if it had already been uploaded by the application, it is marked **Skipped (already uploaded)** and is not sent again.
 
-**Que se passe-t-il si je perds la connexion réseau pendant un upload ?**
-Chaque fichier est retenté automatiquement avec un délai croissant (1 s, 2 s, 4 s… plafonné à 60 s, plus une composante aléatoire). Après 5 échecs réseau consécutifs, un disjoncteur arrête la session avec le message « Trop d'erreurs réseau consécutives. Vérifiez la connexion Internet puis relancez l'upload. » Rien n'est perdu : les fichiers restent en attente ou en erreur relançable, et un simple clic sur **Démarrer l'upload** reprend le travail une fois le réseau rétabli.
+**What happens if I lose the network connection during an upload?**
+Each file is retried automatically with an increasing delay (1 s, 2 s, 4 s… capped at 60 s, plus a random component). After 5 consecutive network failures, a circuit breaker stops the session with the message "Too many consecutive network errors. Check your Internet connection then restart the upload." Nothing is lost: the files remain pending or in a retriable error state, and a single click on **Start upload** resumes the work once the network is restored.
 
-**Que se passe-t-il si le token expire ?**
-Il y a trois « tokens » différents, tous gérés automatiquement :
-- le **token d'accès** (courte durée) est rafraîchi automatiquement, y compris en plein upload ;
-- le **refresh token** (longue durée) peut être révoqué ou expirer côté Google ; dans ce cas l'upload s'interrompt avec le message « Session Google expirée : reconnectez votre compte puis relancez l'upload. » — cliquez sur **Connecter mon compte Google**, puis relancez ;
-- le **jeton d'upload** d'un fichier (octets déjà transférés mais média pas encore créé) est réutilisé s'il a moins de 20 heures ; au-delà, les octets du fichier sont simplement renvoyés.
+**What happens if the token expires?**
+There are three different "tokens", all handled automatically:
+- the **access token** (short-lived) is refreshed automatically, including in the middle of an upload;
+- the **refresh token** (long-lived) can be revoked or expire on Google's side; in that case the upload stops with the message "Google session expired: reconnect your account then restart the upload." — click **Connect my Google account**, then restart;
+- a file's **upload token** (bytes already transferred but media not yet created) is reused if it is less than 20 hours old; beyond that, the file's bytes are simply resent.
 
-**L'application peut-elle détecter qu'une photo est déjà dans Google Photos ?**
-Uniquement si c'est **elle** qui l'y a mise. L'API ne lui donne aucun accès au reste de votre bibliothèque (voir l'encadré de l'onglet **Paramètres**).
+**Can the application detect that a photo is already in Google Photos?**
+Only if **it** was the one that put it there. The API gives it no access to the rest of your library (see the box in the **Settings** tab).
 
-**Que se passe-t-il si je modifie un fichier déjà uploadé ?**
-Au scan suivant, le changement de contenu est détecté (hash différent) : le fichier repasse **En attente** et la nouvelle version est uploadée comme un nouveau média. L'ancienne version reste dans Google Photos : l'application ne supprime jamais rien.
+**What happens if I modify a file that has already been uploaded?**
+On the next scan, the content change is detected (different hash): the file returns to **Pending** and the new version is uploaded as a new media item. The old version remains in Google Photos: the application never deletes anything.
 
-**Les vidéos sont-elles prises en charge ?**
-La liste de formats par défaut ne contient que des formats d'image (y compris RAW). La limite de taille configurée dans l'application vise les photos (limite Google : 200 Mo).
+**Are videos supported?**
+The default format list contains only image formats (including RAW). The size limit configured in the application targets photos (Google limit: 200 MB).
 
-**Puis-je lancer l'application deux fois en même temps ?**
-Non : une seule instance peut tourner à la fois (les deux se disputeraient le même inventaire). Si vous relancez l'application alors qu'elle est déjà ouverte, un message « Google Photos Local Uploader est déjà en cours d'exécution. » s'affiche et la seconde instance se ferme.
+**Can I run the application twice at the same time?**
+No: only one instance can run at a time (the two would compete for the same inventory). If you relaunch the application while it is already open, a message "Google Photos Local Uploader is already running." appears and the second instance closes.
 
-**Où sont stockées mes données et mes secrets ?**
-L'inventaire, l'historique et les paramètres : `%APPDATA%\GooglePhotosLocalUploader\app.db`. Les journaux : `%APPDATA%\GooglePhotosLocalUploader\logs\`. Le refresh token et le client secret OAuth : dans le Gestionnaire d'identifiants Windows (entrées `GooglePhotosLocalUploader/RefreshToken` et `GooglePhotosLocalUploader/OAuthClientSecret`), jamais en clair sur le disque. Le Client ID, qui n'est pas un secret, est stocké dans la base.
+**Where are my data and my secrets stored?**
+The inventory, the history and the settings: `%APPDATA%\GooglePhotosLocalUploader\app.db`. The logs: `%APPDATA%\GooglePhotosLocalUploader\logs\`. The refresh token and the OAuth client secret: in Windows Credential Manager (entries `GooglePhotosLocalUploader/RefreshToken` and `GooglePhotosLocalUploader/OAuthClientSecret`), never in plain text on disk. The Client ID, which is not a secret, is stored in the database.

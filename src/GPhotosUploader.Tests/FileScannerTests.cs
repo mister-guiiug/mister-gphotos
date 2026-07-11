@@ -1,5 +1,7 @@
+using System.Globalization;
 using GPhotosUploader.Core.Data;
 using GPhotosUploader.Core.Models;
+using GPhotosUploader.Core.Resources;
 using GPhotosUploader.Core.Services;
 using Xunit;
 
@@ -109,6 +111,7 @@ public class FileScannerTests : IDisposable
     [Fact]
     public async Task OversizedFile_MarkedIncompatible()
     {
+        Loc.Culture = CultureInfo.GetCultureInfo("en");
         _settings.MaxFileSizeMb = 1;
         CreateFile("gros.jpg", new byte[2 * 1024 * 1024]);
 
@@ -117,7 +120,7 @@ public class FileScannerTests : IDisposable
         Assert.Equal(1, result.Incompatible);
         var file = _repo.GetByPath(Path.Combine(_root, "gros.jpg"));
         Assert.Equal(UploadStatus.SkippedIncompatible, file!.UploadStatus);
-        Assert.Contains("volumineux", file.LastError);
+        Assert.Contains("too large", file.LastError);
     }
 
     [Fact]

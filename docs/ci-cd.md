@@ -1,65 +1,65 @@
-# Intégration et livraison continues (GitHub Actions)
+# Continuous Integration and Delivery (GitHub Actions)
 
-Le dépôt contient deux workflows dans `.github/workflows/`.
+The repository contains two workflows in `.github/workflows/`.
 
 ## 1. CI — `ci.yml`
 
-**Déclenchement** : à chaque poussée sur `main`/`master`, à chaque pull request, ou
-manuellement (onglet **Actions** → « Run workflow »).
+**Trigger**: on every push to `main`/`master`, on every pull request, or
+manually (**Actions** tab → "Run workflow").
 
-**Ce qu'il fait**, sur un runner `windows-latest` :
+**What it does**, on a `windows-latest` runner:
 
-1. installe le SDK .NET 8 ;
-2. restaure, compile la solution en `Release` ;
-3. exécute les 54 tests xUnit ;
-4. publie le rapport de tests (`*.trx`) en artefact.
+1. installs the .NET 8 SDK;
+2. restores and builds the solution in `Release`;
+3. runs the 59 xUnit tests;
+4. publishes the test report (`*.trx`) as an artifact.
 
-C'est le filet de sécurité : aucune régression ne passe inaperçue.
+This is the safety net: no regression goes unnoticed.
 
 ## 2. Release — `release.yml`
 
-**Déclenchement** :
+**Trigger**:
 
-- **automatique** en poussant un tag de version `vX.Y.Z` (ex. `v1.2.3`) ;
-- **manuel** via l'onglet Actions en saisissant la version.
+- **automatic** by pushing a version tag `vX.Y.Z` (e.g. `v1.2.3`);
+- **manual** via the Actions tab by entering the version.
 
-**Ce qu'il produit**, sur `windows-latest` :
+**What it produces**, on `windows-latest`:
 
-1. déduit la version depuis le tag (`v1.2.3` → `1.2.3`) ou depuis la saisie manuelle ;
-2. compile et teste (la version est injectée dans les binaires via `-p:Version=`) ;
-3. publie deux artefacts **auto-contenus** (aucun .NET requis sur la machine cible) :
-   - un **dossier** win-x64, empaqueté ensuite par l'installeur ;
-   - un **exécutable portable** (fichier unique, ~70 Mo) ;
-4. installe **Inno Setup** (via Chocolatey) et construit l'installeur
-   `mister-gphotos-Setup-<version>.exe` ;
-5. calcule les empreintes **SHA-256** (`SHA256SUMS.txt`) ;
-6. crée (ou met à jour) la **Release GitHub** correspondant au tag et y attache :
-   - `mister-gphotos-Setup-<version>.exe` (installeur, recommandé) ;
-   - `mister-gphotos-<version>-portable.exe` (portable, un seul fichier) ;
+1. derives the version from the tag (`v1.2.3` → `1.2.3`) or from manual input;
+2. builds and tests (the version is injected into the binaries via `-p:Version=`);
+3. publishes two **self-contained** artifacts (no .NET required on the target machine):
+   - a win-x64 **folder**, subsequently packaged by the installer;
+   - a **portable executable** (single file, ~70 MB);
+4. installs **Inno Setup** (via Chocolatey) and builds the installer
+   `mister-gphotos-Setup-<version>.exe`;
+5. computes the **SHA-256** checksums (`SHA256SUMS.txt`);
+6. creates (or updates) the **GitHub Release** corresponding to the tag and attaches:
+   - `mister-gphotos-Setup-<version>.exe` (installer, recommended);
+   - `mister-gphotos-<version>-portable.exe` (portable, single file);
    - `SHA256SUMS.txt`.
 
-La Release utilise le `GITHUB_TOKEN` fourni automatiquement (permission `contents: write`) :
-aucun secret à configurer.
+The Release uses the `GITHUB_TOKEN` provided automatically (permission `contents: write`):
+no secret to configure.
 
-## Publier une version
+## Publishing a version
 
 ```powershell
-# 1. Mettre à jour le numéro de version dans src/GPhotosUploader.App/GPhotosUploader.App.csproj
-#    (<Version>1.2.3</Version>) — facultatif mais recommandé pour cohérence.
-# 2. Commiter, puis créer et pousser le tag :
+# 1. Update the version number in src/GPhotosUploader.App/GPhotosUploader.App.csproj
+#    (<Version>1.2.3</Version>) — optional but recommended for consistency.
+# 2. Commit, then create and push the tag:
 git tag v1.2.3
 git push origin v1.2.3
 ```
 
-Le workflow **Release** démarre, et quelques minutes plus tard la page **Releases** du
-dépôt contient l'installeur et la version portable prêts à télécharger.
+The **Release** workflow starts, and a few minutes later the repository's **Releases**
+page contains the installer and the portable version ready to download.
 
-> **Convention de version** : le tag doit être de la forme `vX.Y.Z`. Un suffixe de
-> pré-version (`v1.2.3-beta`) fonctionne pour le nom des fichiers, mais gardez `X.Y.Z`
-> numérique en tête (contrainte des numéros de version .NET et Windows).
+> **Versioning convention**: the tag must be of the form `vX.Y.Z`. A pre-release
+> suffix (`v1.2.3-beta`) works for the file names, but keep a numeric `X.Y.Z` at the
+> front (a constraint of .NET and Windows version numbers).
 
-## Prérequis côté dépôt
+## Repository-side prerequisites
 
-- Le dépôt doit être hébergé sur GitHub et les **Actions activées** (par défaut).
-- Aucun secret ni runner auto-hébergé : tout tourne sur les runners Windows fournis par
-  GitHub avec le jeton intégré.
+- The repository must be hosted on GitHub with **Actions enabled** (the default).
+- No secrets or self-hosted runner: everything runs on the Windows runners provided by
+  GitHub with the built-in token.

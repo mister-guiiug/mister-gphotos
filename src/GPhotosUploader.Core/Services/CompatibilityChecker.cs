@@ -1,4 +1,5 @@
 using GPhotosUploader.Core.Models;
+using GPhotosUploader.Core.Resources;
 
 namespace GPhotosUploader.Core.Services;
 
@@ -34,12 +35,12 @@ public class CompatibilityChecker
     public CompatibilityResult Check(string extension, long fileSize)
     {
         if (!_extensions.Contains(extension.TrimStart('.')))
-            return new CompatibilityResult(false, $"Extension .{extension} non prise en charge");
+            return new CompatibilityResult(false, Loc.TF("Compat_ExtensionNotSupported", extension));
         if (fileSize <= 0)
-            return new CompatibilityResult(false, "Fichier vide");
+            return new CompatibilityResult(false, Loc.T("Compat_EmptyFile"));
         if (fileSize > _maxSizeBytes)
             return new CompatibilityResult(false,
-                $"Fichier trop volumineux ({fileSize / (1024 * 1024)} Mo, limite {_maxSizeMb} Mo)");
+                Loc.TF("Compat_TooLarge", fileSize / (1024 * 1024), _maxSizeMb));
         return new CompatibilityResult(true, null);
     }
 

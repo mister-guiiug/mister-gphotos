@@ -6,6 +6,9 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <LangVersion>latest</LangVersion>
     <RootNamespace>GPhotosUploader.Core</RootNamespace>
+    <!-- Langue par défaut des ressources (Strings.resx) = anglais ; les .fr.resx
+         produisent des assemblys satellites chargés selon la langue de l'OS. -->
+    <NeutralLanguage>en</NeutralLanguage>
   </PropertyGroup>
 
   <ItemGroup>

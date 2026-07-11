@@ -1,0 +1,350 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="metadata">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" />
+              </xsd:sequence>
+              <xsd:attribute name="name" use="required" type="xsd:string" />
+              <xsd:attribute name="type" type="xsd:string" />
+              <xsd:attribute name="mimetype" type="xsd:string" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="assembly">
+            <xsd:complexType>
+              <xsd:attribute name="alias" type="xsd:string" />
+              <xsd:attribute name="name" type="xsd:string" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="1" />
+              <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3" />
+              <xsd:attribute name="mimetype" type="xsd:string" msdata:Ordinal="4" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="resheader">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+
+  <data name="App_AlreadyRunning" xml:space="preserve"><value>Google Photos Local Uploader est déjà en cours d'exécution.</value></data>
+  <data name="App_UnexpectedError" xml:space="preserve"><value>Une erreur inattendue est survenue :
+{0}
+
+Consultez le journal pour plus de détails.</value></data>
+  <data name="App_Started" xml:space="preserve"><value>Application démarrée.</value></data>
+  <data name="Log_UnhandledError" xml:space="preserve"><value>Erreur non gérée : {0}</value></data>
+
+  <data name="Main_Config_Header" xml:space="preserve"><value>Configuration</value></data>
+  <data name="Main_RootFolderLabel" xml:space="preserve"><value>Dossier racine :</value></data>
+  <data name="Main_Browse" xml:space="preserve"><value>Parcourir...</value></data>
+  <data name="Main_GoogleAccountLabel" xml:space="preserve"><value>Compte Google :</value></data>
+  <data name="Main_Connect" xml:space="preserve"><value>Connecter mon compte Google</value></data>
+  <data name="Main_Disconnect" xml:space="preserve"><value>Déconnecter</value></data>
+
+  <data name="Main_ScanButton" xml:space="preserve"><value>Scanner le dossier</value></data>
+  <data name="Main_StartButton" xml:space="preserve"><value>Démarrer l'upload</value></data>
+  <data name="Main_Pause" xml:space="preserve"><value>Pause</value></data>
+  <data name="Main_Resume" xml:space="preserve"><value>Reprendre</value></data>
+  <data name="Main_Stop" xml:space="preserve"><value>Arrêter</value></data>
+
+  <data name="Main_Progress_Header" xml:space="preserve"><value>Progression</value></data>
+  <data name="Main_DetectedLabel" xml:space="preserve"><value>Détectés : </value></data>
+  <data name="Main_PendingLabel" xml:space="preserve"><value>    En attente : </value></data>
+  <data name="Main_UploadedLabel" xml:space="preserve"><value>    Uploadés : </value></data>
+  <data name="Main_SkippedLabel" xml:space="preserve"><value>    Ignorés : </value></data>
+  <data name="Main_ErrorsLabel" xml:space="preserve"><value>    Erreurs : </value></data>
+
+  <data name="Tab_Journal" xml:space="preserve"><value>Journal</value></data>
+  <data name="Tab_FileDetails" xml:space="preserve"><value>Détails des fichiers</value></data>
+  <data name="Tab_History" xml:space="preserve"><value>Historique</value></data>
+  <data name="Tab_Settings" xml:space="preserve"><value>Paramètres</value></data>
+
+  <data name="Main_FilterLabel" xml:space="preserve"><value>Filtre : </value></data>
+  <data name="Main_Refresh" xml:space="preserve"><value>Actualiser</value></data>
+  <data name="Main_RetryFailed" xml:space="preserve"><value>Relancer les fichiers en erreur</value></data>
+  <data name="Col_File" xml:space="preserve"><value>Fichier</value></data>
+  <data name="Col_Status" xml:space="preserve"><value>Statut</value></data>
+  <data name="Col_Size" xml:space="preserve"><value>Taille</value></data>
+  <data name="Col_UploadedAt" xml:space="preserve"><value>Uploadé le</value></data>
+  <data name="Col_ErrorReason" xml:space="preserve"><value>Erreur / raison</value></data>
+  <data name="Col_Path" xml:space="preserve"><value>Chemin</value></data>
+
+  <data name="Main_ExportLog" xml:space="preserve"><value>Exporter le journal...</value></data>
+  <data name="Col_Batch" xml:space="preserve"><value>Batch</value></data>
+  <data name="Col_Started" xml:space="preserve"><value>Démarré</value></data>
+  <data name="Col_Completed" xml:space="preserve"><value>Terminé</value></data>
+  <data name="Col_Files" xml:space="preserve"><value>Fichiers</value></data>
+  <data name="Col_Succeeded" xml:space="preserve"><value>Réussis</value></data>
+  <data name="Col_Failed" xml:space="preserve"><value>Échecs</value></data>
+
+  <data name="Settings_AuthHeader" xml:space="preserve"><value>Authentification Google</value></data>
+  <data name="Settings_AuthIntro" xml:space="preserve"><value>Chaque utilisateur crée son propre client OAuth « Application de bureau » dans Google Cloud (Google ne permet pas d'automatiser cette création). L'assistant ci-dessous vous guide pas à pas et importe le fichier téléchargé — sinon, renseignez le Client ID et le Client Secret manuellement (guide : docs/google-cloud-setup.md). Aucun mot de passe Google ne vous sera jamais demandé : la connexion se fait dans votre navigateur. Le refresh token et le client secret sont conservés dans le Gestionnaire d'identifiants Windows, jamais en clair.</value></data>
+  <data name="Settings_WizardButton" xml:space="preserve"><value>Assistant de configuration Google Cloud...</value></data>
+  <data name="Settings_ClientIdLabel" xml:space="preserve"><value>Client ID OAuth :</value></data>
+  <data name="Settings_ClientSecretLabel" xml:space="preserve"><value>Client Secret OAuth :</value></data>
+  <data name="Settings_UploadHeader" xml:space="preserve"><value>Upload</value></data>
+  <data name="Settings_BatchSizeLabel" xml:space="preserve"><value>Taille du batch (1 à 50 fichiers) :</value></data>
+  <data name="Settings_MaxRetriesLabel" xml:space="preserve"><value>Tentatives max en cas d'erreur temporaire :</value></data>
+  <data name="Settings_ConcurrencyLabel" xml:space="preserve"><value>Uploads simultanés (1 à 3) :</value></data>
+  <data name="Settings_MaxFileSizeLabel" xml:space="preserve"><value>Taille max par photo (Mo, limite Google : 200) :</value></data>
+  <data name="Settings_FormatsHeader" xml:space="preserve"><value>Formats inclus</value></data>
+  <data name="Settings_FormatsIntro" xml:space="preserve"><value>Extensions séparées par des virgules, sans point. Retirez une extension pour exclure un format.</value></data>
+  <data name="Settings_SaveButton" xml:space="preserve"><value>Enregistrer les paramètres</value></data>
+  <data name="Settings_DuplicatesHeader" xml:space="preserve"><value>Détection des doublons</value></data>
+  <data name="Settings_LocalDataHeader" xml:space="preserve"><value>Données locales</value></data>
+  <data name="Settings_LocalDataIntro" xml:space="preserve"><value>L'application ne supprime jamais vos photos locales ni vos médias Google Photos. La suppression ci-dessous ne concerne que l'inventaire, les journaux, les paramètres et les secrets stockés par l'application.</value></data>
+  <data name="Settings_DeleteDataButton" xml:space="preserve"><value>Supprimer les données locales de l'application</value></data>
+
+  <data name="Disclaimer_Duplicates" xml:space="preserve"><value>Google Photos ne permet pas à cette application de vérifier toute votre bibliothèque. La détection des doublons est garantie uniquement pour les fichiers déjà indexés localement ou uploadés par cette application.</value></data>
+
+  <data name="Status_Discovered" xml:space="preserve"><value>Détecté</value></data>
+  <data name="Status_Queued" xml:space="preserve"><value>En attente</value></data>
+  <data name="Status_Uploading" xml:space="preserve"><value>Upload en cours</value></data>
+  <data name="Status_Uploaded" xml:space="preserve"><value>Uploadé</value></data>
+  <data name="Status_SkippedDuplicateLocal" xml:space="preserve"><value>Ignoré (doublon local)</value></data>
+  <data name="Status_SkippedDuplicateRemote" xml:space="preserve"><value>Ignoré (déjà uploadé)</value></data>
+  <data name="Status_SkippedIncompatible" xml:space="preserve"><value>Ignoré (incompatible)</value></data>
+  <data name="Status_Failed" xml:space="preserve"><value>Erreur</value></data>
+  <data name="Status_Paused" xml:space="preserve"><value>En pause</value></data>
+
+  <data name="Filter_All" xml:space="preserve"><value>Tous</value></data>
+  <data name="Filter_Pending" xml:space="preserve"><value>En attente</value></data>
+  <data name="Filter_Uploaded" xml:space="preserve"><value>Uploadés</value></data>
+  <data name="Filter_Errors" xml:space="preserve"><value>Erreurs</value></data>
+  <data name="Filter_SkippedLocal" xml:space="preserve"><value>Ignorés (doublon local)</value></data>
+  <data name="Filter_SkippedRemote" xml:space="preserve"><value>Ignorés (déjà uploadé)</value></data>
+  <data name="Filter_SkippedIncompatible" xml:space="preserve"><value>Ignorés (incompatible)</value></data>
+
+  <data name="State_Ready" xml:space="preserve"><value>Prêt</value></data>
+  <data name="State_Scanning" xml:space="preserve"><value>Scan en cours</value></data>
+  <data name="State_Uploading" xml:space="preserve"><value>Upload en cours</value></data>
+  <data name="State_Paused" xml:space="preserve"><value>Upload en pause</value></data>
+  <data name="State_Stopping" xml:space="preserve"><value>Arrêt en cours...</value></data>
+
+  <data name="BatchStatus_Completed" xml:space="preserve"><value>Terminé</value></data>
+  <data name="BatchStatus_Stopped" xml:space="preserve"><value>Arrêté</value></data>
+  <data name="BatchStatus_Running" xml:space="preserve"><value>En cours</value></data>
+
+  <data name="Account_None" xml:space="preserve"><value>Aucun compte connecté</value></data>
+  <data name="Account_Connected" xml:space="preserve"><value>Connecté : {0}</value></data>
+  <data name="Account_Generic" xml:space="preserve"><value>(compte Google)</value></data>
+
+  <data name="Status_Authorizing" xml:space="preserve"><value>Autorisation en cours dans votre navigateur...</value></data>
+  <data name="Status_ConnectedAccount" xml:space="preserve"><value>Compte connecté : {0}</value></data>
+  <data name="Status_ConnectionCancelled" xml:space="preserve"><value>Connexion annulée.</value></data>
+  <data name="Msg_MissingCreds_Text" xml:space="preserve"><value>Le Client ID est manquant ou invalide (il doit se terminer par « {0} »), ou le Client Secret est manquant.
+
+Voulez-vous ouvrir l'assistant de configuration pas à pas ?</value></data>
+  <data name="Msg_ConnectGoogle_Caption" xml:space="preserve"><value>Connexion Google</value></data>
+  <data name="Msg_ConnectFailed_Text" xml:space="preserve"><value>Échec de la connexion : {0}</value></data>
+  <data name="Log_ConnectFailed" xml:space="preserve"><value>Échec de la connexion Google : {0}</value></data>
+  <data name="Status_CredsSaved" xml:space="preserve"><value>Identifiants OAuth enregistrés. Cliquez sur « Connecter mon compte Google ».</value></data>
+  <data name="Log_CredsSavedWizard" xml:space="preserve"><value>Identifiants OAuth enregistrés via l'assistant de configuration.</value></data>
+  <data name="Msg_Disconnect_Text" xml:space="preserve"><value>Déconnecter le compte Google ?
+Le refresh token sera révoqué et supprimé du Gestionnaire d'identifiants Windows.</value></data>
+  <data name="Msg_Disconnect_Caption" xml:space="preserve"><value>Déconnexion</value></data>
+  <data name="Msg_RootMissing_Text" xml:space="preserve"><value>Le dossier racine n'existe pas ou n'est pas accessible.</value></data>
+  <data name="Msg_Scan_Caption" xml:space="preserve"><value>Scan</value></data>
+  <data name="Status_ScanRunning" xml:space="preserve"><value>Scan en cours...</value></data>
+  <data name="Status_ScanProgress" xml:space="preserve"><value>Scan en cours : {0} fichiers examinés...</value></data>
+  <data name="Status_ScanDone" xml:space="preserve"><value>Scan terminé : {0} images vues, {1} nouvelles, {2} doublons, {3} incompatibles.</value></data>
+  <data name="Status_ScanCancelled" xml:space="preserve"><value>Scan interrompu. Relancez-le pour compléter l'inventaire.</value></data>
+  <data name="Log_ScanFailed" xml:space="preserve"><value>Échec du scan : {0}</value></data>
+  <data name="Status_ScanFailed" xml:space="preserve"><value>Échec du scan : {0}</value></data>
+  <data name="Status_UploadStarted" xml:space="preserve"><value>Upload démarré.</value></data>
+  <data name="Status_SettingsSaved" xml:space="preserve"><value>Paramètres enregistrés.</value></data>
+  <data name="Dialog_ExportLog_Title" xml:space="preserve"><value>Exporter le journal</value></data>
+  <data name="Dialog_ExportLog_Filter" xml:space="preserve"><value>Fichier texte (*.txt)|*.txt</value></data>
+  <data name="Status_LogExported" xml:space="preserve"><value>Journal exporté vers {0}</value></data>
+  <data name="Msg_ExportFailed_Text" xml:space="preserve"><value>Export impossible : {0}</value></data>
+  <data name="Msg_ExportLog_Caption" xml:space="preserve"><value>Export du journal</value></data>
+  <data name="Status_ResetFailed" xml:space="preserve"><value>{0} fichier(s) en erreur remis en file d'attente.</value></data>
+  <data name="Msg_DeleteData_Text" xml:space="preserve"><value>Supprimer toutes les données locales de l'application ?
+
+Cela efface : l'inventaire SQLite, les journaux, les paramètres et les secrets du Gestionnaire d'identifiants Windows.
+
+Vos photos locales et vos médias Google Photos ne sont PAS touchés.
+L'application se fermera ensuite.</value></data>
+  <data name="Msg_DeleteData_Caption" xml:space="preserve"><value>Supprimer les données locales</value></data>
+  <data name="Msg_DeletePartial_Text" xml:space="preserve"><value>Certaines données n'ont pas pu être supprimées : {0}
+Vous pouvez supprimer manuellement le dossier :
+{1}</value></data>
+  <data name="Msg_DeletePartial_Caption" xml:space="preserve"><value>Suppression partielle</value></data>
+  <data name="Status_AuthLost" xml:space="preserve"><value>Session Google expirée : reconnectez votre compte puis relancez l'upload.</value></data>
+  <data name="Log_RootSelected" xml:space="preserve"><value>Dossier racine sélectionné : {0}</value></data>
+  <data name="Dialog_ChooseFolder_Title" xml:space="preserve"><value>Choisir le dossier racine contenant vos photos</value></data>
+  <data name="Progress_GlobalText" xml:space="preserve"><value>{0:F1} % ({1} uploadés / {2} fichiers)</value></data>
+  <data name="Progress_CurrentFile" xml:space="preserve"><value>{0} — {1} / {2}</value></data>
+  <data name="Progress_Throughput" xml:space="preserve"><value>Débit : {0}/s</value></data>
+  <data name="Progress_Eta" xml:space="preserve"><value>Temps restant estimé : {0}</value></data>
+
+  <data name="Unit_GB" xml:space="preserve"><value>Go</value></data>
+  <data name="Unit_MB" xml:space="preserve"><value>Mo</value></data>
+  <data name="Unit_KB" xml:space="preserve"><value>Ko</value></data>
+  <data name="Unit_B" xml:space="preserve"><value>o</value></data>
+  <data name="Duration_HoursMinutes" xml:space="preserve"><value>{0} h {1:D2} min</value></data>
+  <data name="Duration_MinutesSeconds" xml:space="preserve"><value>{0} min {1:D2} s</value></data>
+  <data name="Duration_Seconds" xml:space="preserve"><value>{0} s</value></data>
+
+  <data name="WizardWindow_Title" xml:space="preserve"><value>Assistant de configuration Google Cloud</value></data>
+  <data name="Wizard_Previous" xml:space="preserve"><value>◀ Précédent</value></data>
+  <data name="Wizard_Next" xml:space="preserve"><value>Suivant ▶</value></data>
+  <data name="Wizard_Finish" xml:space="preserve"><value>Terminer</value></data>
+  <data name="Wizard_Cancel" xml:space="preserve"><value>Annuler</value></data>
+  <data name="Wizard_ImportJson" xml:space="preserve"><value>Importer le fichier client_secret_….json</value></data>
+  <data name="Wizard_ManualEntry" xml:space="preserve"><value>… ou saisissez les valeurs manuellement :</value></data>
+  <data name="Wizard_ClientIdLabel" xml:space="preserve"><value>Client ID :</value></data>
+  <data name="Wizard_ClientSecretLabel" xml:space="preserve"><value>Client Secret :</value></data>
+  <data name="Wizard_OpenLink" xml:space="preserve"><value>Ouvrir cette étape dans le navigateur</value></data>
+  <data name="Wizard_ProgressText" xml:space="preserve"><value>Étape {0} sur {1} — {2}</value></data>
+  <data name="Wizard_ImportedStatus" xml:space="preserve"><value>Fichier importé : Client ID et Client Secret chargés. Vous pouvez cliquer sur « Terminer ».</value></data>
+  <data name="Wizard_Validation_ClientId" xml:space="preserve"><value>Le Client ID est vide ou invalide : il doit se terminer par « {0} ». Importez le fichier JSON ou recopiez la valeur depuis la console.</value></data>
+  <data name="Wizard_Validation_ClientSecret" xml:space="preserve"><value>Le Client Secret est vide ou invalide. Importez le fichier JSON téléchargé, ou collez la valeur affichée à la création du client (elle commence en général par « GOCSPX- »).</value></data>
+  <data name="Dialog_ImportJson_Title" xml:space="preserve"><value>Choisir le fichier client_secret_….json téléchargé</value></data>
+  <data name="Dialog_ImportJson_Filter" xml:space="preserve"><value>Fichier client secret (client_secret*.json)|client_secret*.json|Fichiers JSON (*.json)|*.json|Tous les fichiers (*.*)|*.*</value></data>
+
+  <data name="Wizard_Step1_Title" xml:space="preserve"><value>Pourquoi cette étape ?</value></data>
+  <data name="Wizard_Step1_Body" xml:space="preserve"><value>Google impose que chaque application accédant à Google Photos utilise son propre « client OAuth », créé dans votre console Google Cloud (gratuit, une seule fois, environ 15 minutes).
+
+• Aucun mot de passe Google ne sera jamais saisi dans cette application : la connexion se fera dans votre navigateur.
+• Google ne permet pas d'automatiser entièrement cette création (aucune API publique, ni gcloud, ni Terraform, ne peut créer un client « Application de bureau ») : cet assistant ouvre les bonnes pages et vous indique quoi cliquer.
+• À la fin, vous importerez le fichier JSON téléchargé — ou collerez le Client ID et le Client Secret.
+
+Astuce : gardez cette fenêtre ouverte à côté de votre navigateur.</value></data>
+  <data name="Wizard_Step2_Title" xml:space="preserve"><value>Créer un projet Google Cloud</value></data>
+  <data name="Wizard_Step2_Body" xml:space="preserve"><value>1. Cliquez sur le bouton ci-dessous pour ouvrir la page de création de projet.
+2. Connectez-vous avec votre compte Google si la console vous le demande.
+3. Nom du projet : par exemple « Photos Uploader » (le nom est libre).
+4. Cliquez sur « Créer », puis attendez la notification de fin de création.
+5. Vérifiez, dans le bandeau en haut de la console, que ce nouveau projet est bien sélectionné.</value></data>
+  <data name="Wizard_Step3_Title" xml:space="preserve"><value>Activer l'API Photos Library</value></data>
+  <data name="Wizard_Step3_Body" xml:space="preserve"><value>1. Ouvrez la page de l'API « Photos Library API » avec le bouton ci-dessous.
+2. Vérifiez que votre projet est sélectionné en haut de la page.
+3. Cliquez sur « Activer ».
+
+Si le bouton affiche « Gérer » au lieu d'« Activer », l'API est déjà active : passez à l'étape suivante.</value></data>
+  <data name="Wizard_Step4_Title" xml:space="preserve"><value>Configurer l'écran de consentement</value></data>
+  <data name="Wizard_Step4_Body" xml:space="preserve"><value>1. Ouvrez l'écran de consentement OAuth avec le bouton ci-dessous.
+2. Type d'utilisateurs : choisissez « Externes », puis « Créer ».
+3. Renseignez le nom de l'application (ex. « Photos Uploader ») et votre adresse e-mail (assistance utilisateur et contact développeur) ; laissez le reste vide et enregistrez jusqu'à la fin.
+4. Dans la section « Utilisateurs test » (ou « Audience »), cliquez sur « Ajouter des utilisateurs » et ajoutez votre propre adresse Google.
+
+Important : tant que l'application Google Cloud reste en mode « Test », la connexion expire tous les 7 jours (il suffit alors de se reconnecter). Vous pourrez plus tard cliquer sur « Publier l'application » pour lever cette limite — voir docs/google-cloud-setup.md.</value></data>
+  <data name="Wizard_Step5_Title" xml:space="preserve"><value>Créer le client OAuth « Application de bureau »</value></data>
+  <data name="Wizard_Step5_Body" xml:space="preserve"><value>1. Ouvrez la page de création d'identifiants avec le bouton ci-dessous.
+2. Type d'application : choisissez « Application de bureau ».
+3. Nom : par exemple « Photos Uploader Desktop », puis cliquez sur « Créer ».
+4. Une fenêtre affiche votre Client ID et votre Client Secret : cliquez sur « Télécharger le JSON » (recommandé), ou copiez soigneusement les deux valeurs.
+
+Le fichier téléchargé s'appelle « client_secret_….json » et se trouve en général dans votre dossier Téléchargements.</value></data>
+  <data name="Wizard_Step6_Title" xml:space="preserve"><value>Renseigner les identifiants</value></data>
+  <data name="Wizard_Step6_Body" xml:space="preserve"><value>Importez le fichier JSON téléchargé à l'étape précédente (recommandé), ou collez les valeurs manuellement.
+
+Le Client Secret sera stocké dans le Gestionnaire d'identifiants Windows, jamais en clair sur le disque.</value></data>
+
+  <data name="Auth_ClientCredsRequired" xml:space="preserve"><value>Client ID et Client Secret OAuth requis. Consultez le guide de configuration Google Cloud.</value></data>
+  <data name="Auth_Timeout" xml:space="preserve"><value>Délai d'autorisation dépassé (5 minutes). Réessayez.</value></data>
+  <data name="Auth_ExchangeRefused" xml:space="preserve"><value>Échange du code OAuth refusé par Google ({0}).</value></data>
+  <data name="Auth_NoRefreshToken" xml:space="preserve"><value>Google n'a pas fourni de refresh token. Réessayez la connexion.</value></data>
+  <data name="Auth_ScopesNotGranted" xml:space="preserve"><value>L'accès à Google Photos n'a pas été accordé. Sur l'écran de consentement Google, cochez toutes les autorisations demandées puis réessayez la connexion.</value></data>
+  <data name="Auth_NoFreePort" xml:space="preserve"><value>Impossible d'ouvrir un port local pour recevoir la réponse Google. Réessayez.</value></data>
+  <data name="Auth_AuthorizationDenied" xml:space="preserve"><value>Autorisation refusée : {0}</value></data>
+  <data name="Auth_NoAccount" xml:space="preserve"><value>Aucun compte Google connecté.</value></data>
+  <data name="Auth_ClientSecretNotFound" xml:space="preserve"><value>Client secret OAuth introuvable pour ce Client ID (il a peut-être été modifié). Reconnectez votre compte.</value></data>
+  <data name="Auth_SessionExpired" xml:space="preserve"><value>La session Google a expiré ou a été révoquée. Reconnectez votre compte.</value></data>
+  <data name="Auth_RefreshFailed" xml:space="preserve"><value>Rafraîchissement du token impossible ({0}).</value></data>
+  <data name="Log_Auth_OpeningBrowser" xml:space="preserve"><value>Ouverture du navigateur pour l'autorisation Google...</value></data>
+  <data name="Log_Auth_Connected" xml:space="preserve"><value>Compte Google connecté : {0}</value></data>
+  <data name="Auth_EmailNotProvided" xml:space="preserve"><value>(email non communiqué)</value></data>
+  <data name="Log_Auth_ConfirmPageFailed" xml:space="preserve"><value>La page de confirmation n'a pas pu être affichée dans le navigateur (sans conséquence).</value></data>
+  <data name="Log_Auth_RefreshRefused" xml:space="preserve"><value>Rafraîchissement du token refusé ({0}).</value></data>
+  <data name="Log_Auth_Disconnected" xml:space="preserve"><value>Compte Google déconnecté (refresh token révoqué et supprimé).</value></data>
+  <data name="Log_Auth_RevokeFailed" xml:space="preserve"><value>Révocation distante du token impossible (hors-ligne ?) — le token local sera effacé quand même.</value></data>
+  <data name="Auth_Html_SuccessTitle" xml:space="preserve"><value>Connexion réussie</value></data>
+  <data name="Auth_Html_SuccessBody" xml:space="preserve"><value>Vous pouvez fermer cette fenêtre et revenir dans Google Photos Local Uploader.</value></data>
+  <data name="Auth_Html_FailureTitle" xml:space="preserve"><value>Échec de la connexion</value></data>
+  <data name="Auth_Html_FailureBody" xml:space="preserve"><value>Retournez dans l'application et réessayez.</value></data>
+
+  <data name="Compat_ExtensionNotSupported" xml:space="preserve"><value>Extension .{0} non prise en charge</value></data>
+  <data name="Compat_EmptyFile" xml:space="preserve"><value>Fichier vide</value></data>
+  <data name="Compat_TooLarge" xml:space="preserve"><value>Fichier trop volumineux ({0} Mo, limite {1} Mo)</value></data>
+
+  <data name="Api_HttpTimeoutUpload" xml:space="preserve"><value>Délai d'attente HTTP dépassé pendant l'upload des octets. Nouvel essai automatique.</value></data>
+  <data name="Api_HttpTimeoutBatch" xml:space="preserve"><value>Délai d'attente HTTP dépassé pendant batchCreate. Nouvel essai automatique.</value></data>
+  <data name="Api_EmptyUploadToken" xml:space="preserve"><value>Upload token vide retourné par Google.</value></data>
+  <data name="Api_BatchTooMany" xml:space="preserve"><value>batchCreate accepte au maximum {0} éléments.</value></data>
+  <data name="Api_UnexpectedBatchResponse" xml:space="preserve"><value>Réponse batchCreate inattendue (newMediaItemResults absent).</value></data>
+  <data name="Api_StatusOkNoMedia" xml:space="preserve"><value>Statut OK mais aucun mediaItem retourné.</value></data>
+  <data name="Api_RejectedFile" xml:space="preserve"><value>Google Photos a refusé ce fichier : {0} (code {1})</value></data>
+  <data name="Api_UnknownError" xml:space="preserve"><value>erreur inconnue</value></data>
+  <data name="Api_NoStatusNoMedia" xml:space="preserve"><value>Réponse batchCreate sans statut ni mediaItem.</value></data>
+  <data name="Api_401" xml:space="preserve"><value>Session Google expirée (401).</value></data>
+  <data name="Api_403_Quota" xml:space="preserve"><value>Quota ou limite de débit Google Photos atteint : {0}</value></data>
+  <data name="Api_403_Denied" xml:space="preserve"><value>Accès refusé par Google Photos : {0}</value></data>
+  <data name="Api_429" xml:space="preserve"><value>Limite de requêtes Google Photos atteinte (429). Nouvel essai automatique.</value></data>
+  <data name="Api_5xx" xml:space="preserve"><value>Erreur serveur Google Photos ({0}). Nouvel essai automatique.</value></data>
+  <data name="Api_Generic" xml:space="preserve"><value>Erreur Google Photos lors de {0} ({1}) : {2}</value></data>
+  <data name="Api_Op_UploadBytes" xml:space="preserve"><value>l'upload des octets</value></data>
+  <data name="Api_Op_BatchCreate" xml:space="preserve"><value>batchCreate</value></data>
+
+  <data name="Scan_DirNotFound" xml:space="preserve"><value>Dossier introuvable : {0}</value></data>
+  <data name="Log_Scan_FileSkipped" xml:space="preserve"><value>Fichier ignoré pour cette passe : {0} ({1})</value></data>
+  <data name="Log_Scan_Done" xml:space="preserve"><value>Scan terminé : {0} fichiers vus, {1} nouveaux, {2} modifiés, {3} inchangés, {4} doublons locaux, {5} incompatibles, {6} erreurs, {7} disparus.</value></data>
+  <data name="Scan_Reason_RemoteDuplicate" xml:space="preserve"><value>Contenu identique déjà uploadé par cette application : {0}</value></data>
+  <data name="Scan_Reason_LocalDuplicate" xml:space="preserve"><value>Doublon local de : {0}</value></data>
+
+  <data name="Log_Upload_Recovered" xml:space="preserve"><value>Reprise après interruption : {0} fichier(s) remis en file d'attente.</value></data>
+  <data name="Log_Upload_Paused" xml:space="preserve"><value>Upload mis en pause. Le fichier en cours se termine avant l'arrêt effectif.</value></data>
+  <data name="Log_Upload_Resumed" xml:space="preserve"><value>Reprise de l'upload.</value></data>
+  <data name="Log_Upload_Summary" xml:space="preserve"><value>Upload terminé : {0} uploadé(s), {1} en erreur, {2} ignoré(s).</value></data>
+  <data name="Log_Upload_Stopped" xml:space="preserve"><value>Upload arrêté. Les fichiers en cours reprendront au prochain démarrage.</value></data>
+  <data name="Log_Upload_Interrupted" xml:space="preserve"><value>Upload interrompu : {0}</value></data>
+  <data name="Log_Upload_InterruptedError" xml:space="preserve"><value>Upload interrompu par une erreur : {0}</value></data>
+  <data name="Upload_FileMissing" xml:space="preserve"><value>Fichier introuvable (déplacé ou supprimé depuis le scan).</value></data>
+  <data name="Upload_RemoteDuplicate" xml:space="preserve"><value>Contenu identique déjà uploadé : {0}</value></data>
+  <data name="Log_Upload_TokenReused" xml:space="preserve"><value>Upload token réutilisé pour {0} (octets déjà envoyés).</value></data>
+  <data name="Log_Upload_TokenExpiredRefresh" xml:space="preserve"><value>Token d'accès expiré pendant l'upload de {0}, rafraîchissement...</value></data>
+  <data name="Log_Upload_RetryIn" xml:space="preserve"><value>{0} : {1} Nouvelle tentative dans {2} s.</value></data>
+  <data name="Upload_NetworkError" xml:space="preserve"><value>Erreur réseau : {0}</value></data>
+  <data name="Log_Upload_NetworkRetry" xml:space="preserve"><value>{0} : erreur réseau ({1}). Nouvelle tentative.</value></data>
+  <data name="Upload_FileAccessError" xml:space="preserve"><value>Erreur d'accès au fichier : {0}</value></data>
+  <data name="Log_Upload_BatchCreateRetry" xml:space="preserve"><value>batchCreate : {0}</value></data>
+  <data name="Log_Upload_BatchCreateFailed" xml:space="preserve"><value>batchCreate en échec : {0}</value></data>
+  <data name="Log_Upload_Uploaded" xml:space="preserve"><value>Uploadé : {0}</value></data>
+  <data name="Upload_NoBatchResult" xml:space="preserve"><value>Aucun résultat batchCreate pour ce fichier.</value></data>
+  <data name="Log_Upload_Failed" xml:space="preserve"><value>Échec : {0} — {1}</value></data>
+  <data name="Upload_TooManyNetworkErrors" xml:space="preserve"><value>Trop d'erreurs réseau consécutives. Vérifiez la connexion Internet puis relancez l'upload.</value></data>
+</root>

@@ -7,11 +7,11 @@ param(
 $ErrorActionPreference = "Stop"
 $root = Split-Path -Parent $PSScriptRoot
 
-Write-Host "=== Restauration des packages ===" -ForegroundColor Cyan
+Write-Host "=== Restoring packages ===" -ForegroundColor Cyan
 dotnet restore "$root\GooglePhotosUploader.sln"
 if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
-Write-Host "=== Compilation ($Configuration) ===" -ForegroundColor Cyan
+Write-Host "=== Building ($Configuration) ===" -ForegroundColor Cyan
 dotnet build "$root\GooglePhotosUploader.sln" -c $Configuration --no-restore
 if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
@@ -19,4 +19,4 @@ Write-Host "=== Tests ===" -ForegroundColor Cyan
 dotnet test "$root\src\GPhotosUploader.Tests\GPhotosUploader.Tests.csproj" -c $Configuration --no-build
 if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
-Write-Host "Build et tests OK." -ForegroundColor Green
+Write-Host "Build and tests OK." -ForegroundColor Green
