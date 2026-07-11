@@ -44,7 +44,7 @@ no secret to configure.
 ## Publishing a version
 
 ```powershell
-# 1. Update the version number in src/GPhotosUploader.App/GPhotosUploader.App.csproj
+# 1. Update the version number in src/MisterGPhotos.App/MisterGPhotos.App.csproj
 #    (<Version>1.2.3</Version>) — optional but recommended for consistency.
 # 2. Commit, then create and push the tag:
 git tag v1.2.3

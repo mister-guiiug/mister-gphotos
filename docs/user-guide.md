@@ -143,9 +143,9 @@ To retry it:
 
 ## 7. Exporting the log
 
-In the **History** tab, click **Export the log...**. A save dialog proposes a name such as `google-photos-uploader-log-20260711-1430.txt`. The file contains the 10,000 most recent log entries (timestamp, level, source, message).
+In the **History** tab, click **Export the log...**. A save dialog proposes a name such as `mister-gphotos-log-20260711-1430.txt`. The file contains the 10,000 most recent log entries (timestamp, level, source, message).
 
-Independently of this export, the application also writes a daily log file to disk: `%APPDATA%\GooglePhotosLocalUploader\logs\app-YYYYMMDD.log`. Database entries older than 90 days are purged automatically at startup.
+Independently of this export, the application also writes a daily log file to disk: `%APPDATA%\MisterGPhotos\logs\app-YYYYMMDD.log`. Database entries older than 90 days are purged automatically at startup.
 
 ---
 
@@ -172,7 +172,7 @@ In the **Settings** tab, **Local data** section, click **Delete the application'
 
 1. stops any ongoing upload;
 2. disconnects the Google account and erases the secrets from Windows Credential Manager;
-3. deletes the `%APPDATA%\GooglePhotosLocalUploader\` folder (the `app.db` database: inventory, history, settings, logs);
+3. deletes the `%APPDATA%\MisterGPhotos\` folder (the `app.db` database: inventory, history, settings, logs);
 4. closes.
 
 As the confirmation dialog reminds you: **your local photos and your Google Photos media are NOT touched**. However, the application loses the memory of what has already been uploaded: after a new scan, the files will be considered never sent and would be uploaded again (creating duplicates on Google's side, which the API does not allow to be detected).
@@ -206,4 +206,4 @@ The default format list contains only image formats (including RAW). The size li
 No: only one instance can run at a time (the two would compete for the same inventory). If you relaunch the application while it is already open, a message "Google Photos Local Uploader is already running." appears and the second instance closes.
 
 **Where are my data and my secrets stored?**
-The inventory, the history and the settings: `%APPDATA%\GooglePhotosLocalUploader\app.db`. The logs: `%APPDATA%\GooglePhotosLocalUploader\logs\`. The refresh token and the OAuth client secret: in Windows Credential Manager (entries `GooglePhotosLocalUploader/RefreshToken` and `GooglePhotosLocalUploader/OAuthClientSecret`), never in plain text on disk. The Client ID, which is not a secret, is stored in the database.
+The inventory, the history and the settings: `%APPDATA%\MisterGPhotos\app.db`. The logs: `%APPDATA%\MisterGPhotos\logs\`. The refresh token and the OAuth client secret: in Windows Credential Manager (entries `MisterGPhotos/RefreshToken` and `MisterGPhotos/OAuthClientSecret`), never in plain text on disk. The Client ID, which is not a secret, is stored in the database.

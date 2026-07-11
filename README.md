@@ -59,7 +59,7 @@ The application does not use a shared OAuth client: each user creates their own 
 
 A **portable version** (a single `.exe` file, no installation) is also attached to each Release.
 
-On uninstall, the local data (`%APPDATA%\GooglePhotosLocalUploader`) and the secrets in the Windows Credential Manager are deliberately **not** removed: first use the "Delete the application's local data" button ("Settings" tab) if you want to erase everything.
+On uninstall, the local data (`%APPDATA%\MisterGPhotos`) and the secrets in the Windows Credential Manager are deliberately **not** removed: first use the "Delete the application's local data" button ("Settings" tab) if you want to erase everything.
 
 ### Option B — Compilation from source (developers)
 
@@ -95,8 +95,8 @@ iscc installer\setup.iss
 
 ## Local data, secrets and privacy
 
-- **Where is the data?** In `%APPDATA%\GooglePhotosLocalUploader\`: the `app.db` database (inventory, settings, batch history — log entries in the database older than 90 days are purged at startup) and the `logs\` folder (daily log files, kept until you delete them).
-- **Where are the secrets?** The Google refresh token and the OAuth Client Secret are stored in the **Windows Credential Manager** (entries `GooglePhotosLocalUploader/RefreshToken` and `GooglePhotosLocalUploader/OAuthClientSecret`), encrypted by Windows — never in clear text on the disk. Only the Client ID (not secret) is kept in the SQLite database.
+- **Where is the data?** In `%APPDATA%\MisterGPhotos\`: the `app.db` database (inventory, settings, batch history — log entries in the database older than 90 days are purged at startup) and the `logs\` folder (daily log files, kept until you delete them).
+- **Where are the secrets?** The Google refresh token and the OAuth Client Secret are stored in the **Windows Credential Manager** (entries `MisterGPhotos/RefreshToken` and `MisterGPhotos/OAuthClientSecret`), encrypted by Windows — never in clear text on the disk. Only the Client ID (not secret) is kept in the SQLite database.
 - **Permissions requested from Google**: the minimal scopes `photoslibrary.appendonly` (add media), `photoslibrary.readonly.appcreateddata` (read back only the media created by the application), `openid` and `email` (display the connected account). The application can neither read the rest of your library nor delete anything.
 - **Erase everything**: the "Delete the application's local data" button ("Settings" tab) revokes the token, erases the secrets from the Credential Manager, deletes the database and the logs, then closes the application. Your local photos and your Google Photos media are not touched.
 
@@ -121,7 +121,7 @@ The rest of the stack: `Microsoft.Data.Sqlite` for the local inventory (no datab
 | [docs/google-cloud-setup.md](docs/google-cloud-setup.md) | Everyone | Create your Google Cloud project and your "Desktop app" OAuth client (Client ID / Client Secret), step by step |
 | [docs/user-guide.md](docs/user-guide.md) | Everyone | Complete usage guide: screens, file statuses, pause/resume, filters, log export, FAQ |
 | [docs/known-limitations.md](docs/known-limitations.md) | Everyone | Known limits: duplicate detection, API quotas, storage, OAuth Test mode |
-| [docs/architecture.md](docs/architecture.md) | Developers | Architecture of the `GPhotosUploader.Core` / `GPhotosUploader.App` projects, services, upload flow and resume logic |
+| [docs/architecture.md](docs/architecture.md) | Developers | Architecture of the `MisterGPhotos.Core` / `MisterGPhotos.App` projects, services, upload flow and resume logic |
 | [docs/database-schema.md](docs/database-schema.md) | Developers | Schema of the SQLite database (`app.db`): tables, statuses, migrations |
 | [docs/build-windows.md](docs/build-windows.md) | Developers | Compilation, tests and self-contained publication (`build\publish.ps1`) |
 | [docs/installer.md](docs/installer.md) | Developers | Creation of the Windows installer with Inno Setup (`installer\setup.iss`) |
@@ -132,11 +132,11 @@ The rest of the stack: `Microsoft.Data.Sqlite` for the local inventory (no datab
 ## Repository structure
 
 ```
-GooglePhotosUploader.sln
+MisterGPhotos.sln
 src/
-  GPhotosUploader.Core/    Logique métier : modèles, accès SQLite, scan, OAuth, client API, orchestration d'upload
-  GPhotosUploader.App/     Interface WPF (MainWindow, assistant Google Cloud, ViewModels)
-  GPhotosUploader.Tests/   Tests unitaires (54 tests : logique, base de données, scanner, identifiants OAuth)
+  MisterGPhotos.Core/    Logique métier : modèles, accès SQLite, scan, OAuth, client API, orchestration d'upload
+  MisterGPhotos.App/     Interface WPF (MainWindow, assistant Google Cloud, ViewModels)
+  MisterGPhotos.Tests/   Tests unitaires (54 tests : logique, base de données, scanner, identifiants OAuth)
 build/
   build.ps1                Restauration, compilation, tests
   publish.ps1              Publication auto-contenue win-x64 dans dist\win-x64\

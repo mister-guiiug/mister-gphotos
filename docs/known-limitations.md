@@ -54,7 +54,7 @@ The `photoslibrary.appendonly` scope used by the application allows **only addin
 
 > "The application never deletes your local photos or your Google Photos media. The deletion below only concerns the inventory, logs, settings, and secrets stored by the application."
 
-A consequence to be aware of: if you upload a photo by mistake, deleting it from Google Photos must be done **manually** (Google Photos website or app). The "Delete the application's local data" button erases only the `%APPDATA%\GooglePhotosLocalUploader\` folder (`app.db` database, `logs\` logs) and the secrets in Windows Credential Manager — neither your photos nor your online media.
+A consequence to be aware of: if you upload a photo by mistake, deleting it from Google Photos must be done **manually** (Google Photos website or app). The "Delete the application's local data" button erases only the `%APPDATA%\MisterGPhotos\` folder (`app.db` database, `logs\` logs) and the secrets in Windows Credential Manager — neither your photos nor your online media.
 
 ## 8. 200 MB limit per photo
 

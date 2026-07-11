@@ -1,18 +1,18 @@
 # SQLite database schema
 
 > Technical document for developers. Reference sources:
-> `src/GPhotosUploader.Core/Data/Migrations.cs`, `src/GPhotosUploader.Core/Data/Database.cs`,
-> `src/GPhotosUploader.Core/Models/Enums.cs` and the repositories (`*Repository.cs`) in the `src/GPhotosUploader.Core/Data/` folder.
+> `src/MisterGPhotos.Core/Data/Migrations.cs`, `src/MisterGPhotos.Core/Data/Database.cs`,
+> `src/MisterGPhotos.Core/Models/Enums.cs` and the repositories (`*Repository.cs`) in the `src/MisterGPhotos.Core/Data/` folder.
 
 ## Overview
 
 All of the application's local data is stored in a single SQLite database:
 
-- **File**: `%APPDATA%\GooglePhotosLocalUploader\app.db` (the `AppPaths.DatabasePath` constant).
+- **File**: `%APPDATA%\MisterGPhotos\app.db` (the `AppPaths.DatabasePath` constant).
 - **Access**: `Microsoft.Data.Sqlite`, without an ORM; SQL is hand-written in the repositories (`MediaFileRepository`, `SettingsRepository`, `AccountRepository`, `BatchRepository`, `LogRepository`).
 - **Dates**: all dates are stored as `TEXT` in ISO 8601 UTC format (the "roundtrip" `"o"` format, e.g. `2026-07-11T14:32:05.1234567Z`) via `Database.ToDbDate` / `Database.FromDbDate`.
 - **Sensitive content**: the database contains **no secrets**. The OAuth refresh token and the client secret are kept in the Windows Credential Manager (`CredentialStore`, `advapi32` CredWrite). Only the OAuth **client ID** (a non-secret value) is stored in the `settings` table.
-- **Deletion**: the UI provides a button to fully delete the local data (`%APPDATA%\GooglePhotosLocalUploader\`, database + logs). The application never deletes a scanned local file or a media item on Google Photos.
+- **Deletion**: the UI provides a button to fully delete the local data (`%APPDATA%\MisterGPhotos\`, database + logs). The application never deletes a scanned local file or a media item on Google Photos.
 
 ## Opening connections: WAL and busy_timeout
 
@@ -29,7 +29,7 @@ PRAGMA journal_mode=WAL; PRAGMA busy_timeout=5000; PRAGMA foreign_keys=ON;
 ## Versioned migrations
 
 The schema evolves through **ordered, idempotent migrations**, defined in `Migrations.All`
-(a list of `(Version, Script)` pairs in `src/GPhotosUploader.Core/Data/Migrations.cs`) and applied
+(a list of `(Version, Script)` pairs in `src/MisterGPhotos.Core/Data/Migrations.cs`) and applied
 by `Database.Migrate()` on every construction of the `Database` object (that is, on every startup):
 
 1. Creation of the `schema_version` table if it does not exist (`CREATE TABLE IF NOT EXISTS schema_version (version INTEGER NOT NULL)`).
@@ -148,7 +148,7 @@ Index: `idx_upload_attempts_file` on `media_file_id` — attempt history of a fi
 
 ### `app_logs`
 
-Persistent application log (`LogRepository` repository), complementing the text files `%APPDATA%\GooglePhotosLocalUploader\logs\app-AAAAMMJJ.log`. Purgeable by age (`Purge(keepDays)`).
+Persistent application log (`LogRepository` repository), complementing the text files `%APPDATA%\MisterGPhotos\logs\app-AAAAMMJJ.log`. Purgeable by age (`Purge(keepDays)`).
 
 | Column | Type | Role |
 |---|---|---|
@@ -162,7 +162,7 @@ Index: `idx_app_logs_timestamp` on `timestamp` — chronological display and pur
 
 ## Statuses
 
-The text values stored in the database are defined by `StatusMapper` (`src/GPhotosUploader.Core/Models/Enums.cs`). Any unknown value throws an exception when read: the list below is exhaustive.
+The text values stored in the database are defined by `StatusMapper` (`src/MisterGPhotos.Core/Models/Enums.cs`). Any unknown value throws an exception when read: the list below is exhaustive.
 
 ### `scan_status`
 

@@ -54,17 +54,17 @@ jobs:
           Write-Host "Version = $version / Tag = $tag"
 
       - name: Restaurer les dépendances
-        run: dotnet restore GooglePhotosUploader.sln
+        run: dotnet restore MisterGPhotos.sln
 
       - name: Compiler (Release)
-        run: dotnet build GooglePhotosUploader.sln -c Release --no-restore -p:Version=${{ steps.meta.outputs.version }}
+        run: dotnet build MisterGPhotos.sln -c Release --no-restore -p:Version=${{ steps.meta.outputs.version }}
 
       - name: Tests
-        run: dotnet test src/GPhotosUploader.Tests/GPhotosUploader.Tests.csproj -c Release --no-build
+        run: dotnet test src/MisterGPhotos.Tests/MisterGPhotos.Tests.csproj -c Release --no-build
 
       - name: Publier l'application (dossier auto-contenu, pour l'installeur)
         run: >
-          dotnet publish src/GPhotosUploader.App/GPhotosUploader.App.csproj
+          dotnet publish src/MisterGPhotos.App/MisterGPhotos.App.csproj
           -c Release -r win-x64 --self-contained true
           -p:PublishSingleFile=false
           -p:Version=${{ steps.meta.outputs.version }}
@@ -72,7 +72,7 @@ jobs:
 
       - name: Publier l'exécutable portable (fichier unique auto-contenu)
         run: >
-          dotnet publish src/GPhotosUploader.App/GPhotosUploader.App.csproj
+          dotnet publish src/MisterGPhotos.App/MisterGPhotos.App.csproj
           -c Release -r win-x64 --self-contained true
           -p:PublishSingleFile=true
           -p:IncludeNativeLibrariesForSelfExtract=true

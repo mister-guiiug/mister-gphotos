@@ -44,7 +44,7 @@ Name: "{autodesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; Tasks: de
 [Run]
 Filename: "{app}\{#MyAppExeName}"; Description: "{cm:LaunchProgram,{#StringChange(MyAppName, '&', '&&')}}"; Flags: nowait postinstall skipifsilent
 
-; The local data (%APPDATA%\GooglePhotosLocalUploader) and the Credential
+; The local data (%APPDATA%\MisterGPhotos) and the Credential
 ; Manager secrets are intentionally NOT removed on uninstall: use the
 ; "Remove local data" button in the application before uninstalling if you
 ; want to erase everything.

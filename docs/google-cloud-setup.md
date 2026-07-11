@@ -201,9 +201,9 @@ such access no longer exists in the API for third-party applications anyway.
 
 | Data | Location | Sensitive? |
 |---|---|---|
-| OAuth Client ID | Local SQLite database (`%APPDATA%\GooglePhotosLocalUploader\app.db`) | No (the Client ID is not a secret) |
-| OAuth Client Secret | Windows Credential Manager, entry `GooglePhotosLocalUploader/OAuthClientSecret` | Yes — never written in plain text |
-| Refresh token (connection token) | Windows Credential Manager, entry `GooglePhotosLocalUploader/RefreshToken` | Yes — never written in plain text |
+| OAuth Client ID | Local SQLite database (`%APPDATA%\MisterGPhotos\app.db`) | No (the Client ID is not a secret) |
+| OAuth Client Secret | Windows Credential Manager, entry `MisterGPhotos/OAuthClientSecret` | Yes — never written in plain text |
+| Refresh token (connection token) | Windows Credential Manager, entry `MisterGPhotos/RefreshToken` | Yes — never written in plain text |
 
 The **"Delete the application's local data"** button ("Settings" tab, "Local data" section)
 erases the inventory, the logs, the settings, and these two secrets. Your local photos and

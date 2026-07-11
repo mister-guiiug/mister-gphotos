@@ -56,12 +56,12 @@ it into a folder of your choice (for example `C:\Src\mister-tof-sync-desktop`).
 The project root must contain:
 
 ```
-GooglePhotosUploader.sln        .NET solution (3 projects)
-src/GPhotosUploader.Core/       Library: models, SQLite database, services (net8.0)
-src/GPhotosUploader.Core/Resources/  Localization resources
-src/GPhotosUploader.App/        WPF application (net8.0-windows)
-src/GPhotosUploader.App/Localization/  Localization
-src/GPhotosUploader.Tests/      xUnit tests (net8.0) — 59 tests
+MisterGPhotos.sln        .NET solution (3 projects)
+src/MisterGPhotos.Core/       Library: models, SQLite database, services (net8.0)
+src/MisterGPhotos.Core/Resources/  Localization resources
+src/MisterGPhotos.App/        WPF application (net8.0-windows)
+src/MisterGPhotos.App/Localization/  Localization
+src/MisterGPhotos.Tests/      xUnit tests (net8.0) — 59 tests
 build/build.ps1                 Script: restore + compile + tests
 build/publish.ps1               Script: self-contained win-x64 publish
 installer/setup.iss             Inno Setup script (Windows installer)
@@ -81,11 +81,11 @@ From the project root, in PowerShell:
 The script performs, in order, and **stops at the first error** (it propagates the exit
 code from `dotnet`):
 
-1. `dotnet restore GooglePhotosUploader.sln` — restores the NuGet packages
+1. `dotnet restore MisterGPhotos.sln` — restores the NuGet packages
    (displays: `=== Restoring packages ===`);
-2. `dotnet build GooglePhotosUploader.sln -c Release --no-restore` — compilation
+2. `dotnet build MisterGPhotos.sln -c Release --no-restore` — compilation
    (displays: `=== Building (Release) ===`);
-3. `dotnet test src\GPhotosUploader.Tests\GPhotosUploader.Tests.csproj -c Release --no-build`
+3. `dotnet test src\MisterGPhotos.Tests\MisterGPhotos.Tests.csproj -c Release --no-build`
    — runs the tests (displays: `=== Tests ===`).
 
 On success, the script displays `Build and tests OK.` in green.
@@ -110,15 +110,15 @@ The script accepts an optional `-Configuration` parameter (default value: `Relea
 The command-by-command equivalent, from the root:
 
 ```powershell
-dotnet restore GooglePhotosUploader.sln
-dotnet build GooglePhotosUploader.sln -c Release --no-restore
-dotnet test src\GPhotosUploader.Tests\GPhotosUploader.Tests.csproj -c Release --no-build
+dotnet restore MisterGPhotos.sln
+dotnet build MisterGPhotos.sln -c Release --no-restore
+dotnet test src\MisterGPhotos.Tests\MisterGPhotos.Tests.csproj -c Release --no-build
 ```
 
 To run the application directly from source (useful during development):
 
 ```powershell
-dotnet run --project src\GPhotosUploader.App\GPhotosUploader.App.csproj -c Debug
+dotnet run --project src\MisterGPhotos.App\MisterGPhotos.App.csproj -c Debug
 ```
 
 ---
@@ -128,11 +128,11 @@ dotnet run --project src\GPhotosUploader.App\GPhotosUploader.App.csproj -c Debug
 After a `dotnet build -c Release`, the binaries are produced under each project:
 
 ```
-src/GPhotosUploader.Core/bin/Release/net8.0/
+src/MisterGPhotos.Core/bin/Release/net8.0/
     MisterGPhotos.Core.dll
     fr/MisterGPhotos.Core.resources.dll   <- French localization satellite assembly
 
-src/GPhotosUploader.App/bin/Release/net8.0-windows/
+src/MisterGPhotos.App/bin/Release/net8.0-windows/
     MisterGPhotos.exe      <- WPF executable (AssemblyName of the App project)
     MisterGPhotos.dll
     MisterGPhotos.Core.dll
@@ -140,14 +140,15 @@ src/GPhotosUploader.App/bin/Release/net8.0-windows/
     Microsoft.Data.Sqlite.dll (+ SQLitePCLRaw dependencies)
     ...
 
-src/GPhotosUploader.Tests/bin/Release/net8.0/
+src/MisterGPhotos.Tests/bin/Release/net8.0/
     MisterGPhotos.Tests.dll
 ```
 
-Note that the assembly output names (`MisterGPhotos.exe`, `MisterGPhotos.Core.dll`,
-`MisterGPhotos.Tests.dll`) are set via the `AssemblyName` property in each `.csproj`,
-so they match the `mister-gphotos` repository name. The project folders and namespaces
-keep the `GPhotosUploader.*` prefix.
+Note that the executable is named **`MisterGPhotos.exe`** (and not
+"MisterGPhotos.App.exe"): the App project's `AssemblyName` is `MisterGPhotos`. The
+projects, folders, namespaces and other assemblies all use the `MisterGPhotos.*` naming,
+matching the `mister-gphotos` repository (the product display name stays
+"Google Photos Local Uploader").
 
 The executable produced by `dotnet build` is **framework-dependent**: it requires the
 .NET 8 (Desktop) runtime to be installed on the machine. For an executable that works
@@ -166,7 +167,7 @@ From the project root:
 The script runs:
 
 ```powershell
-dotnet publish src\GPhotosUploader.App\GPhotosUploader.App.csproj `
+dotnet publish src\MisterGPhotos.App\MisterGPhotos.App.csproj `
     -c Release `
     -r win-x64 `
     --self-contained true `
@@ -206,7 +207,7 @@ The installer is written to `dist\installer\` under the name
 `mister-gphotos-Setup-1.0.0.exe`. It installs **without administrator rights**
 (`PrivilegesRequired=lowest`) and is in French.
 
-On uninstall, the local data (`%APPDATA%\GooglePhotosLocalUploader`, which contains
+On uninstall, the local data (`%APPDATA%\MisterGPhotos`, which contains
 `app.db` and `logs\`) and the secrets in the Windows Credential Manager are
 **intentionally not removed**: use the "Delete local data" button in the application
 before uninstalling if you want to erase everything.
@@ -279,7 +280,7 @@ needs no network access or Google account. A failure generally indicates an unsu
 or a local modification of the sources. Restart cleanly:
 
 ```powershell
-dotnet clean GooglePhotosUploader.sln
+dotnet clean MisterGPhotos.sln
 .\build\build.ps1
 ```
 

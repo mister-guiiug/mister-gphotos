@@ -58,34 +58,34 @@ fully auditable in `GooglePhotosApi.cs`.
 ## 3. Solution breakdown
 
 ```
-GooglePhotosUploader.sln
-├── src/GPhotosUploader.Core/     Pure business logic (no WPF dependency)
+MisterGPhotos.sln
+├── src/MisterGPhotos.Core/     Pure business logic (no WPF dependency)
 │   ├── Models/                   Enums, MediaFile, AppSettings, GoogleAccount, UploadBatch
 │   ├── Data/                     Database, Migrations, *Repository (SQLite)
 │   ├── Resources/                Strings.resx (English), Strings.fr.resx (French), Loc helper
 │   └── Services/                 Scan, auth, API, upload, logging…
-├── src/GPhotosUploader.App/      WPF presentation layer (MVVM)
+├── src/MisterGPhotos.App/      WPF presentation layer (MVVM)
 │   ├── App.xaml(.cs)             Composition root (service instantiation)
 │   ├── MainWindow.xaml(.cs)      Main window + clean shutdown
 │   ├── Localization/LocExtension XAML markup extension {l:Loc Key}
 │   ├── Views/OAuthWizardWindow   Google Cloud wizard (6 steps, console links, JSON import)
 │   └── ViewModels/               MainViewModel, OAuthWizardViewModel
-├── src/GPhotosUploader.Tests/    xUnit: CoreLogic, Database, FileScanner, OAuthClientConfig (59 tests)
+├── src/MisterGPhotos.Tests/    xUnit: CoreLogic, Database, FileScanner, OAuthClientConfig (59 tests)
 ├── build/build.ps1, build/publish.ps1
 ├── scripts/setup-google-cloud.ps1  (Optional) gcloud: project + API enablement (the "Desktop app"
 │                                   OAuth client cannot be automated by any API)
 └── installer/setup.iss           Inno Setup installer
 ```
 
-- **`GPhotosUploader.Core`** references neither WPF nor anything UI-related: it is
+- **`MisterGPhotos.Core`** references neither WPF nor anything UI-related: it is
   testable from a console and by xUnit. Everything touching SQLite, the network, OAuth
   and the upload state machine lives here.
-- **`GPhotosUploader.App`** contains no business logic: `App.xaml.cs` is the
+- **`MisterGPhotos.App`** contains no business logic: `App.xaml.cs` is the
   *composition root* (it builds `Database`, the repositories, `HttpClient`,
   `GoogleAuthService`, `GooglePhotosApi`, `FileScanner`, `UploadService`, then injects
   everything into `MainViewModel`). Injection is manual, with no DI container: the object
   graph is small and entirely visible in `OnStartup`.
-- **`GPhotosUploader.Tests`** covers the Core logic (backoff, compatibility, pause,
+- **`MisterGPhotos.Tests`** covers the Core logic (backoff, compatibility, pause,
   migrations, repositories, scanner) — 59 tests, all green.
 
 ### Internationalization (i18n)
@@ -93,12 +93,12 @@ GooglePhotosUploader.sln
 The application is internationalized. All user-facing strings come from resource files
 rather than being hard-coded:
 
-- **Resource files** live at `src/GPhotosUploader.Core/Resources/Strings.resx`
+- **Resource files** live at `src/MisterGPhotos.Core/Resources/Strings.resx`
   (English, the default/fallback culture) and `Strings.fr.resx` (French). Each
   additional `Strings.<culture>.resx` compiles into a satellite assembly.
-- **`GPhotosUploader.Core.Resources.Loc`** is a static helper (`T`/`TF`) backed by a
+- **`MisterGPhotos.Core.Resources.Loc`** is a static helper (`T`/`TF`) backed by a
   `ResourceManager`. `T` returns a localized string by key; `TF` formats it with arguments.
-- **`GPhotosUploader.App.Localization.LocExtension`** is a WPF markup extension used in
+- **`MisterGPhotos.App.Localization.LocExtension`** is a WPF markup extension used in
   XAML as `{l:Loc Key}` to bind a control to a resource key.
 - The **UI culture is taken from the OS at startup**: `App.OnStartup` sets
   `Loc.Culture = CultureInfo.CurrentUICulture` and
@@ -106,13 +106,13 @@ rather than being hard-coded:
 - **Adding a language** only requires adding a `Strings.<culture>.resx` file (which
   produces a satellite assembly); no code change is needed.
 
-## 4. Responsibility of each service (`src/GPhotosUploader.Core/Services/`)
+## 4. Responsibility of each service (`src/MisterGPhotos.Core/Services/`)
 
 | File | Responsibility |
 |---|---|
-| `AppPaths.cs` | Local data locations: `%APPDATA%\GooglePhotosLocalUploader\` (`app.db`, `logs\app-YYYYMMDD.log`). |
+| `AppPaths.cs` | Local data locations: `%APPDATA%\MisterGPhotos\` (`app.db`, `logs\app-YYYYMMDD.log`). |
 | `Logger.cs` | Triple logging: a daily text file, the SQLite table `app_logs` (excluding the Debug level), and the `MessageLogged` event for real-time display in the UI. Must never receive sensitive data (token, secret). A log write failure never brings the application down. |
-| `CredentialStore.cs` | Read/write/delete of secrets in the Windows Credential Manager via P/Invoke `advapi32` (`CredWriteW`, `CredReadW`, `CredDeleteW`). Exact targets: `GooglePhotosLocalUploader/RefreshToken` and `GooglePhotosLocalUploader/OAuthClientSecret`. |
+| `CredentialStore.cs` | Read/write/delete of secrets in the Windows Credential Manager via P/Invoke `advapi32` (`CredWriteW`, `CredReadW`, `CredDeleteW`). Exact targets: `MisterGPhotos/RefreshToken` and `MisterGPhotos/OAuthClientSecret`. |
 | `CompatibilityChecker.cs` | Checks that a file is acceptable: extension present in `AppSettings.IncludedExtensions` (configurable list, default: jpg, jpeg, png, webp, heic, heif, gif, tif, tiff, bmp, avif, ico + RAW dng, cr2, cr3, crw, nef, nrw, arw, orf, raf, rw2, srw, pef, srf, sr2), non-empty, size ≤ 200 MB (Google Photos photo limit). Also provides the MIME type sent to the upload endpoint (`MimeTypeFor`). |
 | `FileScanner.cs` | Recursive scan of the root folder (`EnumerationOptions`: subfolders, ignores inaccessible items, skips reparse points and system files). For each image: if size + modification date are unchanged and the hash is already known → simple update of `last_seen_at` (no re-hash); otherwise SHA-256 computation, duplicate detection by hash (already uploaded → `skipped_duplicate_remote_app_created`; local duplicate → `skipped_duplicate_local`), transition to `queued`. Modified content resets the file (status, token, attempt counter). Never downgrades an `uploaded` file. At the end of the scan, files under the root that were not seen again move to `scan_status = 'missing'`. |
 | `PauseTokenSource.cs` | Cooperative pause token: the orchestrator calls `WaitWhilePausedAsync` between each step and freezes while the pause is active; `Resume` releases all waits. |
@@ -121,7 +121,7 @@ rather than being hard-coded:
 | `Backoff.cs` | Exponential backoff: 1 s base, doubling per attempt, **60 s cap**, random jitter 0–500 ms; a `Retry-After` provided by Google is honored first (capped at the ceiling). |
 | `UploadService.cs` | Upload orchestrator (detailed in §6 and §7): consumes the `queued` queue in batches (default 20 files), obtains upload tokens with limited concurrency (`SemaphoreSlim`, 1–3, default 2), calls `batchCreate`, persists **every** state transition to SQLite, handles pause/resume/stop, throughput over a 30 s sliding window, and estimation of the remaining time. |
 
-On the data side (`src/GPhotosUploader.Core/Data/`): `Database.cs` opens SQLite in
+On the data side (`src/MisterGPhotos.Core/Data/`): `Database.cs` opens SQLite in
 **WAL** mode with `busy_timeout=5000` and `foreign_keys=ON` (resilience to abrupt
 shutdowns and to concurrent scan + upload + UI access); `Migrations.cs` applies
 versioned scripts within a transaction (table `schema_version`); the repositories
@@ -132,13 +132,13 @@ versioned scripts within a transaction (table `schema_version`); the repositorie
 
 ```mermaid
 flowchart TB
-    subgraph App["GPhotosUploader.App (WPF)"]
+    subgraph App["MisterGPhotos.App (WPF)"]
         MW["MainWindow.xaml(.cs)"]
         VM["MainViewModel<br/>(CommunityToolkit.Mvvm)"]
         AX["App.xaml.cs<br/>composition root"]
     end
 
-    subgraph Core["GPhotosUploader.Core"]
+    subgraph Core["MisterGPhotos.Core"]
         subgraph Services
             FS["FileScanner"]
             US["UploadService"]
@@ -161,7 +161,7 @@ flowchart TB
     end
 
     subgraph External
-        SQLITE[("%APPDATA%\GooglePhotosLocalUploader\app.db")]
+        SQLITE[("%APPDATA%\MisterGPhotos\app.db")]
         WCM["Windows Credential Manager"]
         GOOGLE["Google Photos Library API<br/>/v1/uploads + /v1/mediaItems:batchCreate"]
         OAUTH["Google OAuth 2.0<br/>accounts.google.com + oauth2.googleapis.com"]
@@ -380,13 +380,13 @@ does not close abruptly.
 
 ## 11. Build and distribution
 
-- **Compilation / tests**: `dotnet build` and `dotnet test` on `GooglePhotosUploader.sln`
+- **Compilation / tests**: `dotnet build` and `dotnet test` on `MisterGPhotos.sln`
   (script `build/build.ps1`).
 - **Publishing**: `build/publish.ps1` produces a **self-contained win-x64** executable
   in `dist\win-x64\` (`MisterGPhotos.exe`) — no .NET installation required on
   the target machine.
 - **Installer**: `installer/setup.iss` (Inno Setup).
-- **Local data**: everything lives under `%APPDATA%\GooglePhotosLocalUploader\`; the UI's
+- **Local data**: everything lives under `%APPDATA%\MisterGPhotos\`; the UI's
   "Delete local data" button stops the upload, disconnects the account (revocation +
   clearing of the secrets), drains the SQLite pools and deletes the folder — without ever
   touching the local photos or the Google Photos media.

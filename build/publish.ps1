@@ -9,7 +9,7 @@ $root = Split-Path -Parent $PSScriptRoot
 $out = "$root\dist\$Runtime"
 
 Write-Host "=== Self-contained publish ($Runtime) ===" -ForegroundColor Cyan
-dotnet publish "$root\src\GPhotosUploader.App\GPhotosUploader.App.csproj" `
+dotnet publish "$root\src\MisterGPhotos.App\MisterGPhotos.App.csproj" `
     -c Release `
     -r $Runtime `
     --self-contained true `

@@ -31,7 +31,7 @@ All commands are run from the repository root (`mister-tof-sync-desktop`).
 .\build\publish.ps1
 ```
 
-This script runs `dotnet publish` on `src\GPhotosUploader.App\GPhotosUploader.App.csproj` in `Release` configuration, for the `win-x64` runtime, in **self-contained** mode (`--self-contained true`, `PublishSingleFile=false`). The output is written to:
+This script runs `dotnet publish` on `src\MisterGPhotos.App\MisterGPhotos.App.csproj` in `Release` configuration, for the `win-x64` runtime, in **self-contained** mode (`--self-contained true`, `PublishSingleFile=false`). The output is written to:
 
 ```
 dist\win-x64\
@@ -83,14 +83,14 @@ The `installer/setup.iss` script configures the installer as follows (actual set
 
 ### **Deliberately** kept by the uninstaller
 
-- **The application's local data** in `%APPDATA%\GooglePhotosLocalUploader\`: the inventory database `app.db` and the `logs\` folder (daily logs).
-- **The secrets** stored in Windows Credential Manager: the entries `GooglePhotosLocalUploader/RefreshToken` and `GooglePhotosLocalUploader/OAuthClientSecret`.
+- **The application's local data** in `%APPDATA%\MisterGPhotos\`: the inventory database `app.db` and the `logs\` folder (daily logs).
+- **The secrets** stored in Windows Credential Manager: the entries `MisterGPhotos/RefreshToken` and `MisterGPhotos/OAuthClientSecret`.
 
 This choice is intentional: it allows you to reinstall or update the application without losing the inventory of files already uploaded, and without having to reconnect the Google account.
 
 **To erase everything before uninstalling**: open the application and use the **"Delete the application's local data"** button (the "Local data" section of the interface). After confirmation, it erases the SQLite inventory, the logs, the settings, and the secrets in Windows Credential Manager, then closes the application. Your local photos and your Google Photos media are **never** touched — neither by this button nor by uninstallation: the application does not delete any local file or any Google Photos media.
 
-If you uninstalled without using this button, you can still manually delete the `%APPDATA%\GooglePhotosLocalUploader\` folder and, in Windows Credential Manager (Control Panel → Credential Manager → Windows Credentials), the two entries mentioned above.
+If you uninstalled without using this button, you can still manually delete the `%APPDATA%\MisterGPhotos\` folder and, in Windows Credential Manager (Control Panel → Credential Manager → Windows Credentials), the two entries mentioned above.
 
 ---
 
