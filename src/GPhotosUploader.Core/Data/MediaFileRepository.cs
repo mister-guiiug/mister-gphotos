@@ -3,7 +3,7 @@ using Microsoft.Data.Sqlite;
 
 namespace GPhotosUploader.Core.Data;
 
-/// <summary>Accès à la table media_files : inventaire local et machine à états de l'upload.</summary>
+/// <summary>Access to the media_files table: local inventory and upload state machine.</summary>
 public class MediaFileRepository
 {
     private readonly Database _db;
@@ -68,7 +68,7 @@ public class MediaFileRepository
         cmd.ExecuteNonQuery();
     }
 
-    /// <summary>Fichiers à uploader : queued en premier, puis paused, puis failed relançables.</summary>
+    /// <summary>Files to upload: queued first, then paused, then retryable failed ones.</summary>
     public List<MediaFile> GetNextForUpload(int limit, int maxRetries, int offset = 0)
     {
         using var conn = _db.OpenConnection();
@@ -87,7 +87,7 @@ public class MediaFileRepository
         return MapList(cmd);
     }
 
-    /// <summary>Cherche un fichier déjà uploadé par cette application avec le même hash.</summary>
+    /// <summary>Looks for a file already uploaded by this application with the same hash.</summary>
     public MediaFile? FindUploadedByHash(string sha256, long excludeId)
     {
         using var conn = _db.OpenConnection();
@@ -104,9 +104,9 @@ public class MediaFileRepository
     }
 
     /// <summary>
-    /// Cherche un autre fichier local partageant le même hash (doublon local).
-    /// Seules les lignes « vivantes » (revues au dernier scan) peuvent servir de
-    /// canonique : un fichier disparu ne bloque pas l'upload de sa copie déplacée.
+    /// Looks for another local file sharing the same hash (local duplicate).
+    /// Only "live" rows (seen again in the last scan) can serve as the
+    /// canonical one: a vanished file does not block the upload of its moved copy.
     /// </summary>
     public MediaFile? FindLocalDuplicate(string sha256, long excludeId)
     {
@@ -127,9 +127,9 @@ public class MediaFileRepository
     }
 
     /// <summary>
-    /// Reprise après crash : tout fichier resté en 'uploading' est remis en 'queued'.
-    /// L'upload token éventuel est conservé : s'il est encore frais (moins de 20 h),
-    /// il sera réutilisé sans renvoyer les octets.
+    /// Recovery after a crash: any file left in 'uploading' is reset to 'queued'.
+    /// The upload token, if any, is kept: if it is still fresh (less than 20 h),
+    /// it will be reused without resending the bytes.
     /// </summary>
     public int RequeueInterrupted()
     {
@@ -139,7 +139,7 @@ public class MediaFileRepository
         return cmd.ExecuteNonQuery();
     }
 
-    /// <summary>À l'arrêt : les fichiers encore 'uploading' passent en 'paused' pour reprise ultérieure.</summary>
+    /// <summary>On shutdown: files still 'uploading' switch to 'paused' for later resumption.</summary>
     public int MarkUploadingAsPaused()
     {
         using var conn = _db.OpenConnection();
@@ -148,7 +148,7 @@ public class MediaFileRepository
         return cmd.ExecuteNonQuery();
     }
 
-    /// <summary>Remet en file les fichiers marqués 'paused' (bouton Reprendre / redémarrage).</summary>
+    /// <summary>Re-queues files marked 'paused' (Resume button / restart).</summary>
     public int RequeuePaused()
     {
         using var conn = _db.OpenConnection();
@@ -157,7 +157,7 @@ public class MediaFileRepository
         return cmd.ExecuteNonQuery();
     }
 
-    /// <summary>Réinitialise le compteur d'essais des fichiers en erreur pour les relancer.</summary>
+    /// <summary>Resets the retry counter of failed files to relaunch them.</summary>
     public int ResetFailed()
     {
         using var conn = _db.OpenConnection();
@@ -178,7 +178,7 @@ public class MediaFileRepository
         return result;
     }
 
-    /// <summary>Somme des octets restant à uploader (pour l'estimation de temps restant).</summary>
+    /// <summary>Sum of bytes remaining to upload (for the estimated time remaining).</summary>
     public long PendingBytes(int maxRetries)
     {
         using var conn = _db.OpenConnection();
@@ -192,7 +192,7 @@ public class MediaFileRepository
         return Convert.ToInt64(cmd.ExecuteScalar());
     }
 
-    /// <summary>Liste paginée pour la vue Détails, filtrable par statut.</summary>
+    /// <summary>Paginated list for the Details view, filterable by status.</summary>
     public List<MediaFile> List(UploadStatus? status, int limit, int offset)
     {
         using var conn = _db.OpenConnection();
@@ -220,8 +220,8 @@ public class MediaFileRepository
     }
 
     /// <summary>
-    /// Rafraîchit last_seen_at/scan_status pour un lot de fichiers inchangés, en une
-    /// seule transaction (évite un commit synchrone par fichier lors des rescans).
+    /// Refreshes last_seen_at/scan_status for a batch of unchanged files, in a
+    /// single transaction (avoids a synchronous commit per file during rescans).
     /// </summary>
     public void TouchLastSeen(IReadOnlyList<long> ids, DateTime seenAtUtc)
     {
@@ -245,7 +245,7 @@ public class MediaFileRepository
         tx.Commit();
     }
 
-    /// <summary>Marque 'missing' les fichiers sous la racine non revus par le scan courant.</summary>
+    /// <summary>Marks as 'missing' the files under the root not seen again by the current scan.</summary>
     public int MarkMissingUnderRoot(string rootPrefix, DateTime scanStartedUtc)
     {
         using var conn = _db.OpenConnection();

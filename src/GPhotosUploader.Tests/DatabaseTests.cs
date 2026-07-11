@@ -5,7 +5,7 @@ using Xunit;
 
 namespace GPhotosUploader.Tests;
 
-/// <summary>Base SQLite temporaire, supprimée à la fin du test.</summary>
+/// <summary>Temporary SQLite database, deleted at the end of the test.</summary>
 public sealed class TempDatabase : IDisposable
 {
     public Database Db { get; }
@@ -144,7 +144,7 @@ public class DatabaseTests
         var next = repo.GetNextForUpload(10, maxRetries: 5);
 
         Assert.Equal(2, next.Count);
-        Assert.Equal(@"C:\p\3.jpg", next[0].LocalPath); // queued avant failed
+        Assert.Equal(@"C:\p\3.jpg", next[0].LocalPath); // queued before failed
         Assert.Equal(@"C:\p\1.jpg", next[1].LocalPath);
     }
 

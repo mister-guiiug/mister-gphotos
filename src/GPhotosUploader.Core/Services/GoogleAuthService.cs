@@ -9,19 +9,19 @@ using GPhotosUploader.Core.Resources;
 
 namespace GPhotosUploader.Core.Services;
 
-/// <summary>Levée quand aucun compte n'est connecté ou que le refresh token est invalide.</summary>
+/// <summary>Thrown when no account is connected or the refresh token is invalid.</summary>
 public class AuthRequiredException : Exception
 {
     public AuthRequiredException(string message) : base(message) { }
 }
 
 /// <summary>
-/// Authentification Google OAuth 2.0 pour application installée :
-/// flux Authorization Code + PKCE avec redirection loopback (127.0.0.1).
-/// Scopes minimaux : appendonly (upload) + readonly.appcreateddata (relecture des
-/// médias créés par l'application) + openid/email (affichage du compte connecté).
-/// Le refresh token et le client secret sont stockés dans le Gestionnaire
-/// d'identifiants Windows, jamais en clair.
+/// Google OAuth 2.0 authentication for an installed application:
+/// Authorization Code + PKCE flow with loopback redirect (127.0.0.1).
+/// Minimal scopes: appendonly (upload) + readonly.appcreateddata (re-reading the
+/// media created by the application) + openid/email (displaying the connected account).
+/// The refresh token and the client secret are stored in the Windows Credential
+/// Manager, never in clear text.
 /// </summary>
 public class GoogleAuthService
 {
@@ -33,7 +33,7 @@ public class GoogleAuthService
         "email"
     };
 
-    /// <summary>Scopes sans lesquels l'application ne peut pas fonctionner (consentement granulaire).</summary>
+    /// <summary>Scopes without which the application cannot function (granular consent).</summary>
     private static readonly string[] RequiredScopes =
     {
         "https://www.googleapis.com/auth/photoslibrary.appendonly",
@@ -66,9 +66,9 @@ public class GoogleAuthService
     public GoogleAccount? CurrentAccount => _accounts.Get();
 
     /// <summary>
-    /// Lance le flux OAuth complet : ouvre le navigateur par défaut, attend le code
-    /// d'autorisation sur une boucle locale, l'échange contre les tokens et
-    /// persiste le refresh token de façon sécurisée.
+    /// Runs the full OAuth flow: opens the default browser, waits for the authorization
+    /// code on a local loopback, exchanges it for the tokens and
+    /// securely persists the refresh token.
     /// </summary>
     public async Task<GoogleAccount> SignInAsync(string clientId, string clientSecret, CancellationToken ct)
     {
@@ -113,7 +113,7 @@ public class GoogleAuthService
             listener.Stop();
         }
 
-        // Échange du code contre les tokens.
+        // Exchange the code for the tokens.
         var form = new Dictionary<string, string>
         {
             ["code"] = code,
@@ -134,7 +134,7 @@ public class GoogleAuthService
         if (string.IsNullOrEmpty(refreshToken))
             throw new AuthRequiredException(Loc.T("Auth_NoRefreshToken"));
 
-        // Consentement granulaire : vérifier que les scopes indispensables ont bien été accordés.
+        // Granular consent: verify that the essential scopes were indeed granted.
         var grantedScopes = root.TryGetProperty("scope", out var scopeProp) ? scopeProp.GetString() ?? "" : "";
         var missing = RequiredScopes.Where(s => !grantedScopes.Contains(s, StringComparison.Ordinal)).ToList();
         if (grantedScopes.Length > 0 && missing.Count > 0)
@@ -167,8 +167,8 @@ public class GoogleAuthService
     }
 
     /// <summary>
-    /// Démarre le listener sur un port loopback libre. Le port est réservé directement
-    /// par HttpListener.Start (pas de fenêtre entre la découverte du port et sa prise).
+    /// Starts the listener on a free loopback port. The port is reserved directly
+    /// by HttpListener.Start (no window between discovering the port and claiming it).
     /// </summary>
     private static string StartLoopbackListener(HttpListener listener)
     {
@@ -186,15 +186,15 @@ public class GoogleAuthService
             }
             catch (HttpListenerException)
             {
-                // Port occupé : essayer le suivant.
+                // Port in use: try the next one.
             }
         }
         throw new AuthRequiredException(Loc.T("Auth_NoFreePort"));
     }
 
     /// <summary>
-    /// Attend la redirection OAuth. Les requêtes parasites (sondes, favicon, onglet
-    /// rafraîchi) reçoivent un 404 et n'interrompent pas l'attente de la vraie réponse.
+    /// Waits for the OAuth redirect. Spurious requests (probes, favicon, refreshed
+    /// tab) receive a 404 and do not interrupt the wait for the real response.
     /// </summary>
     private async Task<string> WaitForAuthorizationCodeAsync(HttpListener listener, string expectedState,
         CancellationToken ct)
@@ -208,7 +208,7 @@ public class GoogleAuthService
             var error = query["error"];
             var code = query["code"];
 
-            // Requête sans rapport avec le flux OAuth : on répond 404 et on continue d'attendre.
+            // Request unrelated to the OAuth flow: we respond 404 and keep waiting.
             if (error is null && (code is null || returnedState != expectedState))
             {
                 await TryWriteResponseAsync(context, 404, "<html><body>Not found</body></html>", ct);
@@ -219,8 +219,8 @@ public class GoogleAuthService
                 ? (200, ResultPage(Loc.T("Auth_Html_SuccessTitle"), Loc.T("Auth_Html_SuccessBody")))
                 : (400, ResultPage(Loc.T("Auth_Html_FailureTitle"), Loc.T("Auth_Html_FailureBody")));
 
-            // L'écriture de la page de confirmation est best-effort : un navigateur qui
-            // coupe la connexion ne doit pas faire échouer une autorisation déjà reçue.
+            // Writing the confirmation page is best-effort: a browser that
+            // drops the connection must not cause an already-received authorization to fail.
             await TryWriteResponseAsync(context, statusCode, html, ct);
 
             if (error is not null)
@@ -229,7 +229,7 @@ public class GoogleAuthService
         }
     }
 
-    /// <summary>Petite page HTML de confirmation affichée dans le navigateur après l'autorisation.</summary>
+    /// <summary>Small HTML confirmation page displayed in the browser after authorization.</summary>
     private static string ResultPage(string title, string body) =>
         $"<html><head><meta charset='utf-8'></head><body style='font-family:sans-serif'>" +
         $"<h2>{WebUtility.HtmlEncode(title)}</h2><p>{WebUtility.HtmlEncode(body)}</p></body></html>";
@@ -252,7 +252,7 @@ public class GoogleAuthService
         }
     }
 
-    /// <summary>Retourne un access token valide, en le rafraîchissant si nécessaire.</summary>
+    /// <summary>Returns a valid access token, refreshing it if necessary.</summary>
     public async Task<string> GetAccessTokenAsync(string clientId, CancellationToken ct)
     {
         var cached = Volatile.Read(ref _cached);
@@ -261,13 +261,13 @@ public class GoogleAuthService
         return await RefreshAccessTokenAsync(clientId, ct);
     }
 
-    /// <summary>Force un rafraîchissement (utilisé après un 401).</summary>
+    /// <summary>Forces a refresh (used after a 401).</summary>
     public async Task<string> RefreshAccessTokenAsync(string clientId, CancellationToken ct)
     {
         await _refreshLock.WaitAsync(ct);
         try
         {
-            // Un autre appel a peut-être déjà rafraîchi pendant l'attente du verrou.
+            // Another call may have already refreshed while waiting for the lock.
             var cached = Volatile.Read(ref _cached);
             if (cached is not null && DateTime.UtcNow < cached.ExpiresUtc)
                 return cached.Value;
@@ -309,15 +309,15 @@ public class GoogleAuthService
         }
     }
 
-    /// <summary>Invalide le token d'accès en cache (après un 401 de l'API).</summary>
+    /// <summary>Invalidates the cached access token (after a 401 from the API).</summary>
     public void InvalidateAccessToken() => Volatile.Write(ref _cached, null);
 
     /// <summary>
-    /// Déconnecte le compte : révoque le refresh token (au mieux, avec timeout court)
-    /// puis l'efface TOUJOURS localement, même si la révocation distante échoue.
-    /// Le Client Secret OAuth est volontairement conservé : il identifie l'application
-    /// (pas le compte) et permet de se reconnecter sans le retaper. Il n'est effacé
-    /// que par « Supprimer les données locales de l'application ».
+    /// Disconnects the account: revokes the refresh token (best-effort, with a short timeout)
+    /// then ALWAYS erases it locally, even if the remote revocation fails.
+    /// The OAuth Client Secret is intentionally kept: it identifies the application
+    /// (not the account) and allows reconnecting without re-entering it. It is only erased
+    /// by "Delete the application's local data".
     /// </summary>
     public async Task SignOutAsync()
     {
@@ -331,7 +331,7 @@ public class GoogleAuthService
         _log.Info("Auth", Loc.T("Log_Auth_Disconnected"));
     }
 
-    /// <summary>Révocation best-effort avec timeout court : ne doit jamais bloquer ni faire échouer l'appelant.</summary>
+    /// <summary>Best-effort revocation with a short timeout: must never block or cause the caller to fail.</summary>
     private async Task TryRevokeAsync(string token)
     {
         try

@@ -1,16 +1,17 @@
 using System.Text.Json;
+using GPhotosUploader.Core.Resources;
 
 namespace GPhotosUploader.Core.Services;
 
-/// <summary>Identifiants d'un client OAuth Google de type « Application de bureau ».</summary>
+/// <summary>Credentials of a Google OAuth client of type "Desktop app".</summary>
 public record OAuthClientCredentials(string ClientId, string ClientSecret);
 
 /// <summary>
-/// Validation et import des identifiants OAuth créés par l'utilisateur dans Google
-/// Cloud Console. Google n'expose aucune API publique (ni gcloud, ni Terraform)
-/// pour créer un client OAuth « Application de bureau » : l'application ne peut
-/// qu'importer le fichier client_secret_….json téléchargé depuis la console,
-/// ou accepter les valeurs collées manuellement.
+/// Validation and import of the OAuth credentials created by the user in Google
+/// Cloud Console. Google exposes no public API (neither gcloud nor Terraform)
+/// to create a "Desktop app" OAuth client: the application can only
+/// import the client_secret_….json file downloaded from the console,
+/// or accept the values pasted manually.
 /// </summary>
 public static class OAuthClientConfig
 {
@@ -33,11 +34,11 @@ public static class OAuthClientConfig
     }
 
     /// <summary>
-    /// Extrait le Client ID et le Client Secret d'un fichier client_secret_….json
-    /// téléchargé depuis Google Cloud Console (clé racine « installed » pour un
-    /// client de type « Application de bureau »).
+    /// Extracts the Client ID and the Client Secret from a client_secret_….json file
+    /// downloaded from Google Cloud Console ("installed" root key for a
+    /// "Desktop app" client).
     /// </summary>
-    /// <exception cref="FormatException">Fichier illisible, mauvais type de client ou champs manquants.</exception>
+    /// <exception cref="FormatException">Unreadable file, wrong client type, or missing fields.</exception>
     public static OAuthClientCredentials ParseClientSecretJson(string json)
     {
         JsonDocument doc;
@@ -47,22 +48,18 @@ public static class OAuthClientConfig
         }
         catch (JsonException)
         {
-            throw new FormatException("Ce fichier n'est pas un JSON valide.");
+            throw new FormatException(Loc.T("Config_InvalidJson"));
         }
 
         using (doc)
         {
             var root = doc.RootElement;
             if (root.ValueKind == JsonValueKind.Object && root.TryGetProperty("web", out _))
-                throw new FormatException(
-                    "Ce fichier correspond à un client OAuth de type « Application Web ». " +
-                    "Créez un client de type « Application de bureau » puis téléchargez son JSON.");
+                throw new FormatException(Loc.T("Config_WebClientType"));
 
             if (root.ValueKind != JsonValueKind.Object || !root.TryGetProperty("installed", out var installed)
                 || installed.ValueKind != JsonValueKind.Object)
-                throw new FormatException(
-                    "Format inattendu : ce fichier ne ressemble pas à un client_secret_….json " +
-                    "téléchargé depuis Google Cloud Console.");
+                throw new FormatException(Loc.T("Config_UnexpectedFormat"));
 
             var clientId = installed.TryGetProperty("client_id", out var idProp)
                 && idProp.ValueKind == JsonValueKind.String ? idProp.GetString() : null;
@@ -70,16 +67,16 @@ public static class OAuthClientConfig
                 && secretProp.ValueKind == JsonValueKind.String ? secretProp.GetString() : null;
 
             if (!IsValidClientId(clientId))
-                throw new FormatException("Le champ client_id du fichier est absent ou invalide.");
+                throw new FormatException(Loc.T("Config_MissingClientId"));
             if (!IsPlausibleClientSecret(clientSecret))
-                throw new FormatException("Le champ client_secret du fichier est absent ou invalide.");
+                throw new FormatException(Loc.T("Config_MissingClientSecret"));
 
             return new OAuthClientCredentials(clientId!.Trim(), clientSecret!.Trim());
         }
     }
 
-    /// <exception cref="FormatException">Contenu invalide.</exception>
-    /// <exception cref="IOException">Fichier illisible.</exception>
+    /// <exception cref="FormatException">Invalid content.</exception>
+    /// <exception cref="IOException">Unreadable file.</exception>
     public static OAuthClientCredentials ParseClientSecretFile(string path)
         => ParseClientSecretJson(File.ReadAllText(path));
 }

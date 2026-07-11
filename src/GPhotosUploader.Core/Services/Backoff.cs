@@ -1,12 +1,12 @@
 namespace GPhotosUploader.Core.Services;
 
-/// <summary>Backoff exponentiel avec plafond et jitter, pour les erreurs temporaires.</summary>
+/// <summary>Exponential backoff with a cap and jitter, for temporary errors.</summary>
 public static class Backoff
 {
     public static readonly TimeSpan BaseDelay = TimeSpan.FromSeconds(1);
     public static readonly TimeSpan MaxDelay = TimeSpan.FromSeconds(60);
 
-    /// <summary>Délai avant la tentative n° <paramref name="attempt"/> (0 = première relance).</summary>
+    /// <summary>Delay before attempt no. <paramref name="attempt"/> (0 = first retry).</summary>
     public static TimeSpan For(int attempt, TimeSpan? retryAfterHint = null)
     {
         if (retryAfterHint is { } hint && hint > TimeSpan.Zero)

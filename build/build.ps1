@@ -1,5 +1,5 @@
-# Compile la solution et exécute les tests.
-# Prérequis : SDK .NET 8 (https://dotnet.microsoft.com/download/dotnet/8.0)
+# Compiles the solution and runs the tests.
+# Prerequisite: .NET 8 SDK (https://dotnet.microsoft.com/download/dotnet/8.0)
 param(
     [string]$Configuration = "Release"
 )

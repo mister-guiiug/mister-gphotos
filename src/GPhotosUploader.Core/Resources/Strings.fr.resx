@@ -347,4 +347,13 @@ Le Client Secret sera stocké dans le Gestionnaire d'identifiants Windows, jamai
   <data name="Upload_NoBatchResult" xml:space="preserve"><value>Aucun résultat batchCreate pour ce fichier.</value></data>
   <data name="Log_Upload_Failed" xml:space="preserve"><value>Échec : {0} — {1}</value></data>
   <data name="Upload_TooManyNetworkErrors" xml:space="preserve"><value>Trop d'erreurs réseau consécutives. Vérifiez la connexion Internet puis relancez l'upload.</value></data>
+
+  <data name="Config_InvalidJson" xml:space="preserve"><value>Ce fichier n'est pas un JSON valide.</value></data>
+  <data name="Config_WebClientType" xml:space="preserve"><value>Ce fichier correspond à un client OAuth de type « Application Web ». Créez un client de type « Application de bureau » puis téléchargez son JSON.</value></data>
+  <data name="Config_UnexpectedFormat" xml:space="preserve"><value>Format inattendu : ce fichier ne ressemble pas à un client_secret_….json téléchargé depuis Google Cloud Console.</value></data>
+  <data name="Config_MissingClientId" xml:space="preserve"><value>Le champ client_id du fichier est absent ou invalide.</value></data>
+  <data name="Config_MissingClientSecret" xml:space="preserve"><value>Le champ client_secret du fichier est absent ou invalide.</value></data>
+
+  <data name="Cred_SecretTooLong" xml:space="preserve"><value>Secret trop long pour le Gestionnaire d'identifiants Windows.</value></data>
+  <data name="Cred_WriteFailed" xml:space="preserve"><value>Écriture dans le Gestionnaire d'identifiants Windows impossible (code {0}).</value></data>
 </root>

@@ -1,13 +1,13 @@
 namespace GPhotosUploader.Core.Models;
 
-/// <summary>Statut de découverte du fichier lors du scan.</summary>
+/// <summary>File discovery status during the scan.</summary>
 public enum ScanStatus
 {
     Scanned,
     Missing
 }
 
-/// <summary>Statut du cycle de vie d'upload d'un fichier.</summary>
+/// <summary>Upload lifecycle status of a file.</summary>
 public enum UploadStatus
 {
     Discovered,
@@ -21,7 +21,7 @@ public enum UploadStatus
     Paused
 }
 
-/// <summary>Niveau de journalisation.</summary>
+/// <summary>Logging level.</summary>
 public enum AppLogLevel
 {
     Debug,
@@ -30,7 +30,7 @@ public enum AppLogLevel
     Error
 }
 
-/// <summary>Conversion des enums vers/depuis les valeurs texte stockées en SQLite.</summary>
+/// <summary>Conversion of enums to/from the text values stored in SQLite.</summary>
 public static class StatusMapper
 {
     public static string ToDb(this UploadStatus status) => status switch
@@ -58,7 +58,7 @@ public static class StatusMapper
         "skipped_incompatible" => UploadStatus.SkippedIncompatible,
         "failed" => UploadStatus.Failed,
         "paused" => UploadStatus.Paused,
-        _ => throw new ArgumentOutOfRangeException(nameof(value), value, "Statut d'upload inconnu")
+        _ => throw new ArgumentOutOfRangeException(nameof(value), value, "Unknown upload status")
     };
 
     public static string ToDb(this ScanStatus status) => status switch
@@ -72,6 +72,6 @@ public static class StatusMapper
     {
         "scanned" => ScanStatus.Scanned,
         "missing" => ScanStatus.Missing,
-        _ => throw new ArgumentOutOfRangeException(nameof(value), value, "Statut de scan inconnu")
+        _ => throw new ArgumentOutOfRangeException(nameof(value), value, "Unknown scan status")
     };
 }

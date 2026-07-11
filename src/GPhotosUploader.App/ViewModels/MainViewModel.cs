@@ -13,7 +13,7 @@ using Microsoft.Win32;
 
 namespace GPhotosUploader.App.ViewModels;
 
-/// <summary>Ligne affichée dans l'onglet « Détails des fichiers ».</summary>
+/// <summary>Row displayed in the "File details" tab.</summary>
 public class FileRow
 {
     public string FileName { get; init; } = "";
@@ -24,7 +24,7 @@ public class FileRow
     public string UploadedText { get; init; } = "";
 }
 
-/// <summary>Ligne affichée dans l'onglet « Historique ».</summary>
+/// <summary>Row displayed in the "History" tab.</summary>
 public class BatchRow
 {
     public long Id { get; init; }
@@ -36,7 +36,7 @@ public class BatchRow
     public string Status { get; init; } = "";
 }
 
-/// <summary>Option de filtre de la vue Détails : libellé traduit + statut ciblé (null = tous).</summary>
+/// <summary>Filter option for the Details view: translated label + targeted status (null = all).</summary>
 public class FilterOption
 {
     public string Label { get; init; } = "";
@@ -143,7 +143,7 @@ public partial class MainViewModel : ObservableObject
         UpdateStateText();
     }
 
-    // ---- Propriétés observables ----
+    // ---- Observable properties ----
 
     [ObservableProperty] private string _rootFolder = "";
     [ObservableProperty] private string _accountStatusText = "";
@@ -185,7 +185,7 @@ public partial class MainViewModel : ObservableObject
 
     private bool IsBusy => IsScanning || IsConnecting || ServiceState != UploadServiceState.Idle;
 
-    // ---- Commandes ----
+    // ---- Commands ----
 
     public RelayCommand BrowseFolderCommand { get; }
     public AsyncRelayCommand<object?> ConnectCommand { get; }
@@ -233,9 +233,9 @@ public partial class MainViewModel : ObservableObject
         SaveSettings();
         var clientId = OAuthClientId.Trim();
         var secret = ((parameter as PasswordBox)?.Password ?? "").Trim();
-        // Champ vide : réutiliser le secret déjà enregistré dans le Gestionnaire
-        // d'identifiants Windows (assistant terminé ou connexion précédente) —
-        // uniquement s'il appartient bien au Client ID courant.
+        // Empty field: reuse the secret already stored in the Windows
+        // Credential Manager (completed wizard or previous connection) —
+        // only if it actually belongs to the current Client ID.
         if (string.IsNullOrWhiteSpace(secret) && OAuthClientConfig.IsValidClientId(clientId))
             secret = CredentialStore.ReadClientSecret(clientId) ?? "";
 
@@ -327,7 +327,7 @@ public partial class MainViewModel : ObservableObject
         });
         try
         {
-            // Instantané des paramètres : le scan ne doit pas voir les éditions à chaud.
+            // Settings snapshot: the scan must not see hot edits.
             var result = await _scanner.ScanAsync(RootFolder, _settings.Clone(), progress, _scanCts.Token);
             StatusMessage = Loc.TF("Status_ScanDone",
                 result.TotalSeen, result.NewFiles, result.Duplicates, result.Incompatible);
@@ -355,8 +355,8 @@ public partial class MainViewModel : ObservableObject
     private void StartUpload()
     {
         SaveSettings();
-        // Instantané des paramètres : le run d'upload est immuable, les éditions
-        // faites ensuite dans l'onglet Paramètres s'appliqueront au prochain run.
+        // Settings snapshot: the upload run is immutable; edits made
+        // afterwards in the Settings tab will apply to the next run.
         if (_upload.Start(_settings.Clone()))
             StatusMessage = Loc.T("Status_UploadStarted");
         RaiseCommandStates();
@@ -381,7 +381,7 @@ public partial class MainViewModel : ObservableObject
         _settings.Clamp();
         _settingsRepo.Save(_settings);
 
-        // Refléter les valeurs éventuellement bornées.
+        // Reflect the possibly clamped values.
         BatchSize = _settings.BatchSize;
         MaxRetries = _settings.MaxRetries;
         Concurrency = _settings.Concurrency;
@@ -429,8 +429,8 @@ public partial class MainViewModel : ObservableObject
         _connectCts?.Cancel();
         await _upload.StopAsync();
         await _auth.SignOutAsync();
-        // SignOutAsync conserve volontairement le Client Secret ; ici l'utilisateur
-        // demande la suppression TOTALE des données locales : on l'efface aussi.
+        // SignOutAsync intentionally keeps the Client Secret; here the user
+        // requests the TOTAL deletion of local data: we erase it as well.
         CredentialStore.Delete(CredentialStore.ClientSecretTarget);
         Microsoft.Data.Sqlite.SqliteConnection.ClearAllPools();
         try
@@ -447,7 +447,7 @@ public partial class MainViewModel : ObservableObject
         Application.Current.Shutdown();
     }
 
-    /// <summary>Appelé à la fermeture de la fenêtre : arrêt propre pour une reprise fiable.</summary>
+    /// <summary>Called when the window closes: clean shutdown for a reliable resume.</summary>
     public async Task ShutdownAsync()
     {
         _refreshTimer.Stop();
@@ -457,7 +457,7 @@ public partial class MainViewModel : ObservableObject
             await _upload.StopAsync();
     }
 
-    // ---- Rafraîchissements ----
+    // ---- Refreshes ----
 
     private void RefreshAccountStatus()
     {
@@ -532,7 +532,7 @@ public partial class MainViewModel : ObservableObject
 
     private void OnFileProgress(UploadFileProgress p)
     {
-        // Limiter la fréquence des mises à jour UI (les événements arrivent tous les ~128 Ko).
+        // Throttle the frequency of UI updates (events arrive roughly every ~128 KB).
         var now = DateTime.UtcNow;
         if ((now - _lastFileProgressUi).TotalMilliseconds < 100 && p.BytesSent < p.TotalBytes) return;
         _lastFileProgressUi = now;

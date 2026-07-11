@@ -5,9 +5,9 @@ using GPhotosUploader.Core.Resources;
 namespace GPhotosUploader.App.Localization;
 
 /// <summary>
-/// Extension XAML de localisation : <c>{l:Loc Some_Key}</c> renvoie la chaîne traduite.
-/// La résolution a lieu au chargement (la langue est fixée au démarrage selon l'OS),
-/// ce qui est suffisant puisqu'on ne change pas de langue à chaud.
+/// XAML localization extension: <c>{l:Loc Some_Key}</c> returns the translated string.
+/// Resolution happens at load time (the language is fixed at startup based on the OS),
+/// which is sufficient since we do not switch language at runtime.
 /// </summary>
 [MarkupExtensionReturnType(typeof(string))]
 public class LocExtension : MarkupExtension

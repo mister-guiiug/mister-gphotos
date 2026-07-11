@@ -1,12 +1,12 @@
-; Script Inno Setup pour Google Photos Local Uploader.
-; Prérequis :
-;   1. Installer Inno Setup 6 : https://jrsoftware.org/isdl.php
-;   2. Publier l'application :  .\build\publish.ps1
-;   3. Compiler ce script :     iscc installer\setup.iss
-; L'installeur produit est écrit dans dist\installer\.
+; Inno Setup script for Google Photos Local Uploader.
+; Prerequisites:
+;   1. Install Inno Setup 6: https://jrsoftware.org/isdl.php
+;   2. Publish the application: .\build\publish.ps1
+;   3. Compile this script:     iscc installer\setup.iss
+; The produced installer is written to dist\installer\.
 
 #define MyAppName "Google Photos Local Uploader"
-; La version peut être surchargée par la CI : iscc /DMyAppVersion=1.2.3 installer\setup.iss
+; The version can be overridden by CI: iscc /DMyAppVersion=1.2.3 installer\setup.iss
 #ifndef MyAppVersion
   #define MyAppVersion "1.0.0"
 #endif
@@ -44,7 +44,7 @@ Name: "{autodesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; Tasks: de
 [Run]
 Filename: "{app}\{#MyAppExeName}"; Description: "{cm:LaunchProgram,{#StringChange(MyAppName, '&', '&&')}}"; Flags: nowait postinstall skipifsilent
 
-; Les données locales (%APPDATA%\GooglePhotosLocalUploader) et les secrets du
-; Gestionnaire d'identifiants ne sont volontairement PAS supprimés à la
-; désinstallation : utilisez le bouton « Supprimer les données locales » dans
-; l'application avant de désinstaller si vous voulez tout effacer.
+; The local data (%APPDATA%\GooglePhotosLocalUploader) and the Credential
+; Manager secrets are intentionally NOT removed on uninstall: use the
+; "Remove local data" button in the application before uninstalling if you
+; want to erase everything.

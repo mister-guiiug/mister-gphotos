@@ -43,7 +43,7 @@ public class FileScannerTests : IDisposable
     {
         CreateFile("a.jpg", new byte[] { 1, 2, 3 });
         CreateFile(@"sub\deep\b.png", new byte[] { 4, 5, 6 });
-        CreateFile("notes.txt", new byte[] { 7 }); // ignoré : extension non supportée
+        CreateFile("notes.txt", new byte[] { 7 }); // ignored: unsupported extension
 
         var result = await _scanner.ScanAsync(_root, _settings, null, CancellationToken.None);
 
@@ -143,15 +143,15 @@ public class FileScannerTests : IDisposable
         var oldPath = CreateFile("a.jpg", content);
         await _scanner.ScanAsync(_root, _settings, null, CancellationToken.None);
 
-        // Déplacement du fichier avant upload.
+        // Moving the file before upload.
         var newPath = Path.Combine(_root, "sub", "a.jpg");
         Directory.CreateDirectory(Path.GetDirectoryName(newPath)!);
         File.Move(oldPath, newPath);
 
-        // Scan 2 : la nouvelle ligne est vue comme doublon de l'ancienne (encore 'scanned'
-        // au moment du traitement) ; l'ancienne passe 'missing' en fin de scan.
+        // Scan 2: the new row is seen as a duplicate of the old one (still 'scanned'
+        // at processing time); the old one becomes 'missing' at the end of the scan.
         await _scanner.ScanAsync(_root, _settings, null, CancellationToken.None);
-        // Scan 3 : le doublon local est réévalué, son canonique est 'missing' -> remise en file.
+        // Scan 3: the local duplicate is re-evaluated, its canonical is 'missing' -> requeued.
         await _scanner.ScanAsync(_root, _settings, null, CancellationToken.None);
 
         var moved = _repo.GetByPath(newPath);
@@ -166,7 +166,7 @@ public class FileScannerTests : IDisposable
         CreateFile("b.jpg", new byte[] { 2, 2, 2 });
         await _scanner.ScanAsync(_root, _settings, null, CancellationToken.None);
 
-        // A (id plus petit) prend le contenu de B (id plus grand).
+        // A (smaller id) takes the content of B (larger id).
         File.WriteAllBytes(pathA, new byte[] { 2, 2, 2 });
         File.SetLastWriteTimeUtc(pathA, DateTime.UtcNow.AddMinutes(1));
         await _scanner.ScanAsync(_root, _settings, null, CancellationToken.None);
@@ -182,7 +182,7 @@ public class FileScannerTests : IDisposable
         var path = CreateFile("a.jpg", new byte[] { 7, 7 });
         await _scanner.ScanAsync(_root, _settings, null, CancellationToken.None);
 
-        // Simule un crash entre Insert('discovered') et Update('queued').
+        // Simulates a crash between Insert('discovered') and Update('queued').
         var row = _repo.GetByPath(path)!;
         row.UploadStatus = UploadStatus.Discovered;
         _repo.Update(row);

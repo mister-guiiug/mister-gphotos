@@ -1,8 +1,8 @@
 namespace GPhotosUploader.Core.Services;
 
 /// <summary>
-/// Jeton de pause coopératif : l'orchestrateur d'upload appelle
-/// WaitWhilePausedAsync entre chaque étape et se fige tant que la pause est active.
+/// Cooperative pause token: the upload orchestrator calls
+/// WaitWhilePausedAsync between each step and freezes while the pause is active.
 /// </summary>
 public class PauseTokenSource
 {

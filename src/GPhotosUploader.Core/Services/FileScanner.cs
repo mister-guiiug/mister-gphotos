@@ -6,18 +6,18 @@ using Microsoft.Data.Sqlite;
 
 namespace GPhotosUploader.Core.Services;
 
-/// <summary>Résumé d'un scan terminé.</summary>
+/// <summary>Summary of a completed scan.</summary>
 public record ScanResult(int TotalSeen, int NewFiles, int Unchanged, int Modified,
                          int Incompatible, int Duplicates, int Errors, int Missing);
 
-/// <summary>Progression du scan en cours.</summary>
+/// <summary>Progress of the ongoing scan.</summary>
 public record ScanProgress(int FilesSeen, string CurrentFile);
 
 /// <summary>
-/// Scan récursif du dossier racine : détecte les images compatibles, calcule le
-/// hash SHA-256 et indexe le tout dans SQLite. Relançable : un fichier déjà connu
-/// dont la taille et la date de modification n'ont pas bougé n'est pas re-hashé
-/// et ne crée jamais de doublon en base (local_path est UNIQUE).
+/// Recursive scan of the root folder: detects compatible images, computes the
+/// SHA-256 hash and indexes everything in SQLite. Re-runnable: an already-known file
+/// whose size and modification date have not changed is not re-hashed
+/// and never creates a duplicate in the database (local_path is UNIQUE).
 /// </summary>
 public class FileScanner
 {
@@ -49,8 +49,8 @@ public class FileScanner
 
         await Task.Run(() =>
         {
-            // Les fichiers inchangés sont rafraîchis (last_seen_at) par lots de 500,
-            // en une transaction, pour rester rapide sur des rescans de 100 000+ fichiers.
+            // Unchanged files are refreshed (last_seen_at) in batches of 500,
+            // in a single transaction, to stay fast on rescans of 100,000+ files.
             var unchangedIds = new List<long>();
             void FlushUnchanged()
             {
@@ -115,9 +115,9 @@ public class FileScanner
         var now = DateTime.UtcNow;
         var existing = _repo.GetByPath(path);
 
-        // Fichier déjà connu, inchangé : on met simplement à jour last_seen_at (par lots).
-        // Exceptions : les lignes 'discovered' (crash entre insert et mise en file) et
-        // 'skipped_duplicate_local' (leur canonique a pu disparaître) sont réévaluées.
+        // Already-known, unchanged file: we simply update last_seen_at (in batches).
+        // Exceptions: 'discovered' rows (crash between insert and queuing) and
+        // 'skipped_duplicate_local' rows (their canonical file may have disappeared) are re-evaluated.
         if (existing is not null
             && existing.FileSize == info.Length
             && existing.ModifiedAt.HasValue
@@ -160,7 +160,7 @@ public class FileScanner
 
         if (contentChanged)
         {
-            // Contenu différent : on repart de zéro pour ce fichier.
+            // Different content: we start over from scratch for this file.
             file.UploadStatus = UploadStatus.Queued;
             file.GoogleMediaItemId = null;
             file.UploadToken = null;
@@ -170,16 +170,16 @@ public class FileScanner
             file.LastError = null;
         }
 
-        // Ne jamais rétrograder un fichier déjà uploadé.
+        // Never downgrade an already-uploaded file.
         if (file.UploadStatus == UploadStatus.Uploaded)
         {
             Persist(file, existing is not null);
             return FileOutcome.Unchanged;
         }
 
-        // Détection de doublons par hash.
+        // Duplicate detection by hash.
         if (file.Id == 0)
-            file.Id = _repo.Insert(file); // insérer d'abord pour disposer d'un id de référence
+            file.Id = _repo.Insert(file); // insert first to obtain a reference id
 
         var uploadedTwin = _repo.FindUploadedByHash(newHash, file.Id);
         if (uploadedTwin is not null)
@@ -191,9 +191,9 @@ public class FileScanner
             return FileOutcome.Duplicate;
         }
 
-        // Peu importe l'ordre des ids : dès qu'un jumeau « vivant » existe, ce fichier
-        // est marqué doublon. Aucun cycle possible : une fois marqué skipped, il sort
-        // du champ de FindLocalDuplicate.
+        // The order of the ids does not matter: as soon as a "live" twin exists, this file
+        // is marked as a duplicate. No cycle is possible: once marked skipped, it drops
+        // out of the scope of FindLocalDuplicate.
         var localTwin = _repo.FindLocalDuplicate(newHash, file.Id);
         if (localTwin is not null)
         {

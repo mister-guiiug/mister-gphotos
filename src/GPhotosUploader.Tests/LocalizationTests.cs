@@ -24,7 +24,7 @@ public class LocalizationTests
     [Fact]
     public void English_IsTheDefaultFallback()
     {
-        // Une culture non traduite (ex. allemand) doit retomber sur l'anglais neutre.
+        // An untranslated culture (e.g. German) should fall back to neutral English.
         Assert.Equal("Scan the folder", WithCulture("de-DE", () => Loc.T("Main_ScanButton")));
     }
 

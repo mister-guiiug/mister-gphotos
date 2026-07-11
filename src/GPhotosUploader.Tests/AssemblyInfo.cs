@@ -1,5 +1,5 @@
 using Xunit;
 
-// Loc.Culture est un état statique global : on sérialise les tests pour éviter que
-// deux tests changeant la culture ne se marchent dessus.
+// Loc.Culture is a global static state: we serialize the tests to prevent
+// two tests changing the culture from stepping on each other.
 [assembly: CollectionBehavior(DisableTestParallelization = true)]

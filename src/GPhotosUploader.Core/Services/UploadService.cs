@@ -6,24 +6,24 @@ namespace GPhotosUploader.Core.Services;
 
 public enum UploadServiceState { Idle, Running, Paused, Stopping }
 
-/// <summary>Progression du fichier en cours d'upload.</summary>
+/// <summary>Progress of the file currently being uploaded.</summary>
 public record UploadFileProgress(string FileName, long BytesSent, long TotalBytes);
 
 /// <summary>
-/// Orchestrateur d'upload : consomme la file des fichiers 'queued' par batchs,
-/// obtient les upload tokens (concurrence limitée), crée les médias via batchCreate,
-/// et persiste chaque transition d'état dans SQLite pour permettre la reprise
-/// après fermeture, crash ou perte réseau.
+/// Upload orchestrator: consumes the queue of 'queued' files in batches,
+/// obtains the upload tokens (with limited concurrency), creates the media items via batchCreate,
+/// and persists every state transition to SQLite to allow resuming
+/// after a shutdown, crash, or network loss.
 /// </summary>
 public class UploadService
 {
-    /// <summary>Durée de validité prudente d'un upload token (Google annonce ~24 h).</summary>
+    /// <summary>Conservative validity duration of an upload token (Google states ~24 h).</summary>
     private static readonly TimeSpan UploadTokenLifetime = TimeSpan.FromHours(20);
 
-    /// <summary>Relances internes (backoff) pour une même tentative en cas d'erreur temporaire.</summary>
+    /// <summary>Internal retries (backoff) within a single attempt in case of a transient error.</summary>
     private const int InAttemptTransientRetries = 3;
 
-    /// <summary>Au-delà de ce nombre d'échecs temporaires consécutifs, on suppose le réseau coupé.</summary>
+    /// <summary>Beyond this number of consecutive transient failures, we assume the network is down.</summary>
     private const int ConsecutiveTransientLimit = 5;
 
     private readonly MediaFileRepository _files;
@@ -59,7 +59,7 @@ public class UploadService
         _log = log;
     }
 
-    /// <summary>Reprise au démarrage de l'application : les fichiers restés 'uploading' redeviennent 'queued'.</summary>
+    /// <summary>Recovery at application startup: files left in 'uploading' go back to 'queued'.</summary>
     public void RecoverAfterRestart()
     {
         var requeued = _files.RequeueInterrupted();
@@ -112,7 +112,7 @@ public class UploadService
             if (State is UploadServiceState.Idle or UploadServiceState.Stopping) return;
             SetState(UploadServiceState.Stopping);
             _cts?.Cancel();
-            _pause.Resume(); // libérer les attentes de pause pour laisser l'annulation se propager
+            _pause.Resume(); // release the pause waits to let the cancellation propagate
             runTask = _runTask;
         }
         if (runTask is not null)
@@ -122,7 +122,7 @@ public class UploadService
         }
     }
 
-    /// <summary>Débit courant en octets/seconde (fenêtre glissante de 30 s).</summary>
+    /// <summary>Current throughput in bytes/second (30 s sliding window).</summary>
     public double BytesPerSecond
     {
         get
@@ -138,7 +138,7 @@ public class UploadService
         }
     }
 
-    /// <summary>Estimation du temps restant, ou null si le débit est inconnu.</summary>
+    /// <summary>Estimated remaining time, or null if the throughput is unknown.</summary>
     public TimeSpan? EstimateRemaining(int maxRetries)
     {
         var rate = BytesPerSecond;
@@ -209,9 +209,9 @@ public class UploadService
     }
 
     /// <summary>
-    /// Construit le prochain batch en paginant sur les fichiers éligibles, en ignorant
-    /// ceux déjà tentés pendant ce run. La pagination garantit qu'aucun fichier éligible
-    /// n'est affamé par des échecs répétés en tête de file.
+    /// Builds the next batch by paging over the eligible files, skipping
+    /// those already attempted during this run. The paging ensures that no eligible file
+    /// is starved by repeated failures at the head of the queue.
     /// </summary>
     private List<MediaFile> NextBatch(AppSettings settings, HashSet<long> attemptedThisRun)
     {
@@ -227,7 +227,7 @@ public class UploadService
                 batch.Add(f);
                 if (batch.Count == settings.BatchSize) break;
             }
-            if (page.Count < pageSize) break; // dernière page : plus rien au-delà
+            if (page.Count < pageSize) break; // last page: nothing more beyond this
             offset += page.Count;
         }
         return batch;
@@ -239,7 +239,7 @@ public class UploadService
         var batchId = _batches.CreateBatch(batch.Count);
         int failed = 0, skipped = 0;
 
-        // Phase 1 : obtenir un upload token pour chaque fichier (concurrence limitée).
+        // Phase 1: obtain an upload token for each file (with limited concurrency).
         using var semaphore = new SemaphoreSlim(settings.Concurrency);
         var ready = new System.Collections.Concurrent.ConcurrentBag<MediaFile>();
 
@@ -268,7 +268,7 @@ public class UploadService
         {
             await Task.WhenAll(tasks);
 
-            // Phase 2 : créer les médias en un appel batchCreate.
+            // Phase 2: create the media items in a single batchCreate call.
             var withTokens = ready.Where(f => f.UploadToken is not null).ToList();
             if (withTokens.Count > 0)
             {
@@ -278,8 +278,8 @@ public class UploadService
         }
         catch
         {
-            // Arrêt utilisateur, perte d'authentification ou disjoncteur réseau :
-            // le batch ne doit jamais rester 'running' en base.
+            // User stop, authentication loss, or network circuit breaker:
+            // the batch must never stay 'running' in the database.
             _batches.CompleteBatch(batchId, uploaded, failed, "stopped");
             throw;
         }
@@ -295,7 +295,7 @@ public class UploadService
     {
         var attemptId = _batches.StartAttempt(file.Id, batchId);
 
-        // Le fichier existe-t-il toujours ?
+        // Does the file still exist?
         if (!File.Exists(file.LocalPath))
         {
             file.ScanStatus = ScanStatus.Missing;
@@ -304,7 +304,7 @@ public class UploadService
             return FileOutcome.Failed;
         }
 
-        // Toujours compatible avec les paramètres courants ?
+        // Still compatible with the current settings?
         var checker = new CompatibilityChecker(settings);
         var compat = checker.Check(file.Extension, file.FileSize);
         if (!compat.IsCompatible)
@@ -316,7 +316,7 @@ public class UploadService
             return FileOutcome.Skipped;
         }
 
-        // Doublon d'un fichier déjà uploadé par cette application ?
+        // Duplicate of a file already uploaded by this application?
         if (file.Sha256Hash is not null)
         {
             var twin = _files.FindUploadedByHash(file.Sha256Hash, file.Id);
@@ -331,7 +331,7 @@ public class UploadService
             }
         }
 
-        // Un upload token encore frais (crash entre upload et batchCreate) est réutilisé tel quel.
+        // An upload token that is still fresh (crash between upload and batchCreate) is reused as-is.
         if (file.UploadToken is not null && file.UploadTokenAt is not null &&
             DateTime.UtcNow - file.UploadTokenAt.Value < UploadTokenLifetime)
         {
@@ -410,8 +410,8 @@ public class UploadService
             }
             catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
             {
-                // Erreur locale (fichier verrouillé, placeholder cloud non hydraté...) :
-                // elle ne doit pas déclencher le disjoncteur réseau.
+                // Local error (locked file, non-hydrated cloud placeholder, etc.):
+                // it must not trip the network circuit breaker.
                 MarkFailed(file, Loc.TF("Upload_FileAccessError", ex.Message), permanent: false, settings);
                 _batches.FinishAttempt(attemptId, "failed", ex.Message);
                 return FileOutcome.Failed;
@@ -453,8 +453,8 @@ public class UploadService
             {
                 if (ex.IsTransient)
                 {
-                    // Échec temporaire : les tokens restent en base et seront
-                    // réutilisés au prochain passage s'ils sont encore frais.
+                    // Transient failure: the tokens stay in the database and will be
+                    // reused on the next pass if they are still fresh.
                     foreach (var f in files)
                     {
                         f.UploadStatus = UploadStatus.Queued;
@@ -465,8 +465,8 @@ public class UploadService
                 }
                 else
                 {
-                    // Rejet définitif (ex. tokens invalides) : jeter les tokens pour
-                    // renvoyer les octets, et compter l'échec vers MaxRetries.
+                    // Permanent rejection (e.g. invalid tokens): discard the tokens to
+                    // re-send the bytes, and count the failure toward MaxRetries.
                     foreach (var f in files)
                     {
                         f.UploadToken = null;
@@ -498,7 +498,7 @@ public class UploadService
             else
             {
                 var message = result?.ErrorMessage ?? Loc.T("Upload_NoBatchResult");
-                // Token consommé ou refusé : on le jette pour renvoyer les octets à la prochaine tentative.
+                // Token consumed or rejected: we discard it to re-send the bytes on the next attempt.
                 file.UploadToken = null;
                 file.UploadTokenAt = null;
                 MarkFailed(file, message, permanent: false, settings);

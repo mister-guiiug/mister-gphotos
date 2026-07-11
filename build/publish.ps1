@@ -1,5 +1,5 @@
-# Publie l'application en exécutable auto-contenu Windows x64 dans dist\.
-# Le résultat n'exige aucune installation préalable de .NET sur la machine cible.
+# Publishes the application as a self-contained Windows x64 executable into dist\.
+# The result requires no prior .NET installation on the target machine.
 param(
     [string]$Runtime = "win-x64"
 )

@@ -1,9 +1,9 @@
 namespace GPhotosUploader.Core.Data;
 
 /// <summary>
-/// Migrations SQLite ordonnées. Chaque script est appliqué une seule fois,
-/// dans une transaction, et la version est enregistrée dans schema_version.
-/// Pour faire évoluer le schéma : ajouter une entrée (version + 1, "ALTER TABLE ...").
+/// Ordered SQLite migrations. Each script is applied exactly once,
+/// within a transaction, and the version is recorded in schema_version.
+/// To evolve the schema: add an entry (version + 1, "ALTER TABLE ...").
 /// </summary>
 public static class Migrations
 {

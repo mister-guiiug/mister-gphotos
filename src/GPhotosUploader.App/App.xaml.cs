@@ -9,10 +9,10 @@ using GPhotosUploader.Core.Services;
 
 namespace GPhotosUploader.App;
 
-/// <summary>Racine de composition : instancie la base, les dépôts et les services.</summary>
+/// <summary>Composition root: instantiates the database, repositories and services.</summary>
 public partial class App : Application
 {
-    /// <summary>Nom de marque du produit (identique dans toutes les langues).</summary>
+    /// <summary>Product brand name (identical across all languages).</summary>
     public const string ProductName = "Google Photos Local Uploader";
 
     private Logger? _logger;
@@ -22,14 +22,14 @@ public partial class App : Application
     {
         base.OnStartup(e);
 
-        // Langue de l'interface = langue d'affichage de l'OS. Fixée pour tous les
-        // threads (les workers de scan/upload doivent produire les mêmes traductions).
+        // UI language = OS display language. Fixed for all
+        // threads (the scan/upload workers must produce the same translations).
         var uiCulture = CultureInfo.CurrentUICulture;
         Loc.Culture = uiCulture;
         CultureInfo.DefaultThreadCurrentUICulture = uiCulture;
 
-        // Instance unique : deux processus se disputeraient la même base SQLite et
-        // RecoverAfterRestart requalifierait les fichiers en cours d'upload de l'autre.
+        // Single instance: two processes would fight over the same SQLite database and
+        // RecoverAfterRestart would requalify the other's files currently being uploaded.
         _singleInstanceMutex = new Mutex(true, @"Global\GooglePhotosLocalUploader", out bool createdNew);
         if (!createdNew)
         {
@@ -55,7 +55,7 @@ public partial class App : Application
         var scanner = new FileScanner(mediaFiles, _logger);
         var upload = new UploadService(mediaFiles, batches, auth, api, _logger);
 
-        // Reprise après fermeture ou crash : les fichiers restés 'uploading' sont remis en file.
+        // Resume after shutdown or crash: files left in 'uploading' state are re-queued.
         upload.RecoverAfterRestart();
         logRepo.Purge(keepDays: 90);
 

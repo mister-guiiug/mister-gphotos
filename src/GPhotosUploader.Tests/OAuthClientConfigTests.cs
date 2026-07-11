@@ -1,3 +1,5 @@
+using System.Globalization;
+using GPhotosUploader.Core.Resources;
 using GPhotosUploader.Core.Services;
 using Xunit;
 
@@ -29,9 +31,10 @@ public class OAuthClientConfigTests
     [Fact]
     public void ParseClientSecretJson_RejectsWebClient_WithExplicitMessage()
     {
+        Loc.Culture = CultureInfo.GetCultureInfo("en");
         var webJson = """{"web": {"client_id": "x.apps.googleusercontent.com", "client_secret": "secret1234"}}""";
         var ex = Assert.Throws<FormatException>(() => OAuthClientConfig.ParseClientSecretJson(webJson));
-        Assert.Contains("Application de bureau", ex.Message);
+        Assert.Contains("Desktop app", ex.Message);
     }
 
     [Fact]
@@ -62,7 +65,7 @@ public class OAuthClientConfigTests
     [InlineData("""null""")]
     public void ParseClientSecretJson_RejectsWrongJsonTypes_WithFormatException(string json)
     {
-        // Jamais d'InvalidOperationException : le contrat est FormatException uniquement.
+        // Never an InvalidOperationException: the contract is FormatException only.
         Assert.Throws<FormatException>(() => OAuthClientConfig.ParseClientSecretJson(json));
     }
 
@@ -72,7 +75,7 @@ public class OAuthClientConfigTests
     [InlineData("", false)]
     [InlineData("juste-un-texte", false)]
     [InlineData(".apps.googleusercontent.com", false)]
-    [InlineData("avec espace.apps.googleusercontent.com", false)]
+    [InlineData("with space.apps.googleusercontent.com", false)]
     public void IsValidClientId_Cases(string input, bool expected)
     {
         Assert.Equal(expected, OAuthClientConfig.IsValidClientId(input));
@@ -82,7 +85,7 @@ public class OAuthClientConfigTests
     [InlineData("GOCSPX-AbCdEfGhIjKl", true)]
     [InlineData("", false)]
     [InlineData("court", false)]
-    [InlineData("avec espace dedans!", false)]
+    [InlineData("with space inside!", false)]
     public void IsPlausibleClientSecret_Cases(string input, bool expected)
     {
         Assert.Equal(expected, OAuthClientConfig.IsPlausibleClientSecret(input));

@@ -9,7 +9,7 @@ using Microsoft.Win32;
 
 namespace GPhotosUploader.App.ViewModels;
 
-/// <summary>Une étape de l'assistant de configuration Google Cloud.</summary>
+/// <summary>A step in the Google Cloud configuration wizard.</summary>
 public class WizardStep
 {
     public string Title { get; init; } = "";
@@ -21,11 +21,11 @@ public class WizardStep
 }
 
 /// <summary>
-/// Assistant intégré de création du client OAuth Google Cloud.
-/// Google n'expose aucune API (ni gcloud, ni Terraform) pour créer un client OAuth
-/// « Application de bureau » : l'assistant guide donc l'utilisateur pas à pas dans la
-/// console (liens directs vers chaque page), puis importe le fichier
-/// client_secret_….json téléchargé — ou accepte les valeurs collées manuellement.
+/// Built-in wizard for creating the Google Cloud OAuth client.
+/// Google exposes no API (neither gcloud nor Terraform) to create a "Desktop
+/// application" OAuth client: the wizard therefore guides the user step by step
+/// through the console (direct links to each page), then imports the downloaded
+/// client_secret_….json file — or accepts values pasted manually.
 /// </summary>
 public partial class OAuthWizardViewModel : ObservableObject
 {
@@ -36,10 +36,10 @@ public partial class OAuthWizardViewModel : ObservableObject
 
     private string _importedSecret = "";
 
-    /// <summary>Identifiants validés, disponibles quand l'assistant se termine par « Terminer ».</summary>
+    /// <summary>Validated credentials, available when the wizard ends with "Finish".</summary>
     public OAuthClientCredentials? Result { get; private set; }
 
-    /// <summary>Demande de fermeture de la fenêtre (true = terminé, false = annulé).</summary>
+    /// <summary>Request to close the window (true = finished, false = cancelled).</summary>
     public event Action<bool>? CloseRequested;
 
     public IReadOnlyList<WizardStep> Steps { get; }

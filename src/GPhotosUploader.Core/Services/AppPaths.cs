@@ -1,6 +1,6 @@
 namespace GPhotosUploader.Core.Services;
 
-/// <summary>Emplacements des données locales de l'application (sous %APPDATA%).</summary>
+/// <summary>Locations of the application's local data (under %APPDATA%).</summary>
 public static class AppPaths
 {
     public const string AppFolderName = "GooglePhotosLocalUploader";

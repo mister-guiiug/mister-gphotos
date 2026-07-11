@@ -4,9 +4,9 @@ using GPhotosUploader.Core.Models;
 namespace GPhotosUploader.Core.Services;
 
 /// <summary>
-/// Journalisation triple : fichier texte quotidien, table SQLite app_logs,
-/// et événement pour l'affichage temps réel dans l'interface.
-/// Aucune donnée sensible (token, secret) ne doit être passée à ce logger.
+/// Triple logging: daily text file, SQLite app_logs table,
+/// and an event for real-time display in the interface.
+/// No sensitive data (token, secret) must be passed to this logger.
 /// </summary>
 public class Logger
 {
@@ -41,7 +41,7 @@ public class Logger
             }
             catch (IOException)
             {
-                // Le journal fichier ne doit jamais faire tomber l'application.
+                // The file log must never bring down the application.
             }
         }
 
@@ -53,14 +53,14 @@ public class Logger
             }
             catch
             {
-                // Base occupée ou verrouillée : le fichier texte a déjà la trace.
+                // Database busy or locked: the text file already has the trace.
             }
         }
 
         MessageLogged?.Invoke(level, $"{DateTime.Now:HH:mm:ss}  {message}");
     }
 
-    /// <summary>Exporte les journaux récents (SQLite) vers un fichier texte choisi par l'utilisateur.</summary>
+    /// <summary>Exports the recent logs (SQLite) to a text file chosen by the user.</summary>
     public void ExportTo(string destinationPath, int maxEntries = 10000)
     {
         var entries = _repo?.ListRecent(maxEntries) ?? new List<LogEntry>();

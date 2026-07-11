@@ -3,14 +3,14 @@ using GPhotosUploader.Core.Resources;
 
 namespace GPhotosUploader.Core.Services;
 
-/// <summary>Résultat de la vérification de compatibilité d'un fichier.</summary>
+/// <summary>Result of a file's compatibility check.</summary>
 public record CompatibilityResult(bool IsCompatible, string? Reason);
 
 /// <summary>
-/// Vérifie qu'un fichier est acceptable pour Google Photos :
-/// extension incluse dans les paramètres et taille sous la limite (200 Mo pour les photos).
-/// La liste d'extensions est configurable ; en ajouter une nouvelle ne demande
-/// aucune modification de code.
+/// Checks that a file is acceptable for Google Photos:
+/// extension included in the settings and size under the limit (200 MB for photos).
+/// The extension list is configurable; adding a new one requires
+/// no code modification.
 /// </summary>
 public class CompatibilityChecker
 {
@@ -25,7 +25,7 @@ public class CompatibilityChecker
         _maxSizeMb = settings.MaxFileSizeMb;
     }
 
-    /// <summary>Filtre rapide sur l'extension, utilisé pendant l'énumération du scan.</summary>
+    /// <summary>Fast filter on the extension, used during the scan enumeration.</summary>
     public bool HasSupportedExtension(string path)
     {
         var ext = Path.GetExtension(path).TrimStart('.');
@@ -44,7 +44,7 @@ public class CompatibilityChecker
         return new CompatibilityResult(true, null);
     }
 
-    /// <summary>Type MIME transmis à l'endpoint d'upload Google Photos.</summary>
+    /// <summary>MIME type passed to the Google Photos upload endpoint.</summary>
     public static string MimeTypeFor(string extension) => extension.TrimStart('.').ToLowerInvariant() switch
     {
         "jpg" or "jpeg" => "image/jpeg",

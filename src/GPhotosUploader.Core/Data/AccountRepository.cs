@@ -2,7 +2,7 @@ using GPhotosUploader.Core.Models;
 
 namespace GPhotosUploader.Core.Data;
 
-/// <summary>Compte Google connecté (table google_account, ligne unique id=1).</summary>
+/// <summary>Connected Google account (google_account table, single row id=1).</summary>
 public class AccountRepository
 {
     private readonly Database _db;

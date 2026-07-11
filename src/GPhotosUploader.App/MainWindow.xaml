@@ -67,7 +67,7 @@
                 <Button Content="{l:Loc Main_Stop}" Command="{Binding StopCommand}" />
             </StackPanel>
 
-            <!-- Progression -->
+            <!-- Progress -->
             <GroupBox Grid.Row="2" Header="{l:Loc Main_Progress_Header}">
                 <StackPanel>
                     <Grid Margin="0,0,0,6">
@@ -97,7 +97,7 @@
                 </StackPanel>
             </GroupBox>
 
-            <!-- Onglets -->
+            <!-- Tabs -->
             <TabControl Grid.Row="3">
 
                 <TabItem Header="{l:Loc Tab_Journal}">

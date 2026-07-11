@@ -1,32 +1,32 @@
 namespace GPhotosUploader.Core.Models;
 
-/// <summary>Paramètres de l'application (table settings, clé/valeur).</summary>
+/// <summary>Application settings (settings table, key/value).</summary>
 public class AppSettings
 {
     public const int MinBatchSize = 1;
-    /// <summary>Limite dure imposée par mediaItems:batchCreate (50 éléments max par appel).</summary>
+    /// <summary>Hard limit imposed by mediaItems:batchCreate (50 items max per call).</summary>
     public const int MaxBatchSize = 50;
     public const int MinConcurrency = 1;
     public const int MaxConcurrency = 3;
 
     public string RootFolder { get; set; } = "";
 
-    /// <summary>Nombre de fichiers par batch (uploads d'octets + un appel batchCreate).</summary>
+    /// <summary>Number of files per batch (byte uploads + one batchCreate call).</summary>
     public int BatchSize { get; set; } = 20;
 
-    /// <summary>Nombre maximum de tentatives pour un fichier en erreur temporaire.</summary>
+    /// <summary>Maximum number of attempts for a file with a temporary error.</summary>
     public int MaxRetries { get; set; } = 5;
 
-    /// <summary>Nombre d'uploads simultanés (1 à 3).</summary>
+    /// <summary>Number of concurrent uploads (1 to 3).</summary>
     public int Concurrency { get; set; } = 2;
 
-    /// <summary>Taille maximum acceptée pour une photo, en Mo (limite Google Photos : 200 Mo).</summary>
+    /// <summary>Maximum size accepted for a photo, in MB (Google Photos limit: 200 MB).</summary>
     public int MaxFileSizeMb { get; set; } = 200;
 
-    /// <summary>Extensions incluses, séparées par des virgules, sans point, en minuscules.</summary>
+    /// <summary>Included extensions, comma-separated, without a dot, in lowercase.</summary>
     public string IncludedExtensions { get; set; } = DefaultExtensions;
 
-    /// <summary>Client ID OAuth de l'utilisateur (créé dans Google Cloud Console, type "Application de bureau").</summary>
+    /// <summary>The user's OAuth Client ID (created in the Google Cloud Console, "Desktop app" type).</summary>
     public string OAuthClientId { get; set; } = "";
 
     public const string DefaultExtensions =
@@ -44,12 +44,12 @@ public class AppSettings
     public long MaxFileSizeBytes => (long)MaxFileSizeMb * 1024 * 1024;
 
     /// <summary>
-    /// Copie immuable pour la durée d'un scan ou d'un run d'upload : les threads de
-    /// travail ne doivent jamais voir les modifications faites dans l'écran Paramètres.
+    /// Immutable copy for the duration of a scan or an upload run: worker threads
+    /// must never see the changes made in the Settings screen.
     /// </summary>
     public AppSettings Clone() => (AppSettings)MemberwiseClone();
 
-    /// <summary>Ramène les valeurs dans des bornes sûres.</summary>
+    /// <summary>Brings the values back within safe bounds.</summary>
     public void Clamp()
     {
         BatchSize = Math.Clamp(BatchSize, MinBatchSize, MaxBatchSize);

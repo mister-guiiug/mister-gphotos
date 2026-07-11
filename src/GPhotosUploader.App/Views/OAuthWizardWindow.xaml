@@ -10,7 +10,7 @@
     </Window.Resources>
     <DockPanel Margin="16">
 
-        <!-- Barre de navigation -->
+        <!-- Navigation bar -->
         <Grid DockPanel.Dock="Bottom" Margin="0,14,0,0">
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Left">
                 <Button Content="{l:Loc Wizard_Cancel}" Command="{Binding CancelCommand}" />
@@ -27,23 +27,23 @@
         </Grid>
 
         <StackPanel>
-            <!-- En-tête de progression -->
+            <!-- Progress header -->
             <TextBlock Text="{Binding ProgressText}" FontSize="16" FontWeight="Bold" Margin="0,0,0,4" />
             <ProgressBar Minimum="0" Maximum="{Binding ProgressMaximum, Mode=OneWay}"
                          Value="{Binding ProgressValue, Mode=OneWay}" Height="6" Margin="0,0,0,14" />
 
-            <!-- Corps de l'étape -->
+            <!-- Step body -->
             <ScrollViewer VerticalScrollBarVisibility="Auto" MaxHeight="330">
                 <TextBlock Text="{Binding CurrentStep.Body}" TextWrapping="Wrap" FontSize="13"
                            LineHeight="20" />
             </ScrollViewer>
 
-            <!-- Lien vers la console -->
+            <!-- Link to the console -->
             <Button Content="{Binding CurrentStep.LinkLabel}" Command="{Binding OpenLinkCommand}"
                     Visibility="{Binding CurrentStep.HasLink, Converter={StaticResource BoolToVisibility}}"
                     HorizontalAlignment="Left" Margin="0,14,0,0" FontWeight="Bold" Padding="16,8" />
 
-            <!-- Saisie finale des identifiants -->
+            <!-- Final credentials entry -->
             <StackPanel Visibility="{Binding IsFinalStep, Converter={StaticResource BoolToVisibility}}"
                         Margin="0,14,0,0">
                 <Button Content="{l:Loc Wizard_ImportJson}"

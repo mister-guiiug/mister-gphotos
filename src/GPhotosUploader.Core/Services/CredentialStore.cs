@@ -1,14 +1,15 @@
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Text.Json;
+using GPhotosUploader.Core.Resources;
 
 namespace GPhotosUploader.Core.Services;
 
 /// <summary>
-/// Stockage sécurisé des secrets (refresh token, client secret OAuth) dans le
-/// Gestionnaire d'identifiants Windows (Windows Credential Manager).
-/// Les secrets sont chiffrés par Windows et liés à la session utilisateur ;
-/// rien n'est écrit en clair sur le disque.
+/// Secure storage of secrets (refresh token, OAuth client secret) in the
+/// Windows Credential Manager.
+/// Secrets are encrypted by Windows and tied to the user session;
+/// nothing is written in plain text to the disk.
 /// </summary>
 public static class CredentialStore
 {
@@ -22,7 +23,7 @@ public static class CredentialStore
     {
         var blob = Encoding.Unicode.GetBytes(secret);
         if (blob.Length > 5 * 512)
-            throw new InvalidOperationException("Secret trop long pour le Gestionnaire d'identifiants Windows.");
+            throw new InvalidOperationException(Loc.T("Cred_SecretTooLong"));
 
         var credential = new CREDENTIAL
         {
@@ -37,8 +38,7 @@ public static class CredentialStore
         {
             Marshal.Copy(blob, 0, credential.CredentialBlob, blob.Length);
             if (!CredWriteW(ref credential, 0))
-                throw new InvalidOperationException(
-                    $"Écriture dans le Gestionnaire d'identifiants Windows impossible (code {Marshal.GetLastWin32Error()}).");
+                throw new InvalidOperationException(Loc.TF("Cred_WriteFailed", Marshal.GetLastWin32Error()));
         }
         finally
         {
@@ -69,14 +69,14 @@ public static class CredentialStore
 
     public static void Delete(string target)
     {
-        // Ignorer l'échec si l'identifiant n'existe pas déjà.
+        // Ignore the failure if the credential does not already exist.
         CredDeleteW(target, CRED_TYPE_GENERIC, 0);
     }
 
     /// <summary>
-    /// Enregistre le Client Secret OAuth en le liant au Client ID auquel il appartient,
-    /// pour qu'un secret d'un ancien client ne soit jamais réutilisé silencieusement
-    /// avec un Client ID différent.
+    /// Saves the OAuth Client Secret, binding it to the Client ID it belongs to,
+    /// so that a secret from an old client is never silently reused
+    /// with a different Client ID.
     /// </summary>
     public static void SaveClientSecret(string clientId, string clientSecret)
     {
@@ -84,7 +84,7 @@ public static class CredentialStore
         Save(ClientSecretTarget, payload);
     }
 
-    /// <summary>Retourne le Client Secret stocké, uniquement s'il appartient au Client ID demandé.</summary>
+    /// <summary>Returns the stored Client Secret, only if it belongs to the requested Client ID.</summary>
     public static string? ReadClientSecret(string clientId)
     {
         var raw = Read(ClientSecretTarget);

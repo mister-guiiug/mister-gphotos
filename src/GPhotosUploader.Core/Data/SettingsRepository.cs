@@ -3,7 +3,7 @@ using GPhotosUploader.Core.Models;
 
 namespace GPhotosUploader.Core.Data;
 
-/// <summary>Paramètres applicatifs persistés dans la table settings (clé/valeur).</summary>
+/// <summary>Application settings persisted in the settings table (key/value).</summary>
 public class SettingsRepository
 {
     private readonly Database _db;

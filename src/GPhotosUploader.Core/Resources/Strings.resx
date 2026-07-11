@@ -370,4 +370,15 @@ The Client Secret will be stored in Windows Credential Manager, never in clear t
   <data name="Upload_NoBatchResult" xml:space="preserve"><value>No batchCreate result for this file.</value></data>
   <data name="Log_Upload_Failed" xml:space="preserve"><value>Failed: {0} — {1}</value></data>
   <data name="Upload_TooManyNetworkErrors" xml:space="preserve"><value>Too many consecutive network errors. Check your Internet connection then restart the upload.</value></data>
+
+  <!-- Core: OAuth client config import -->
+  <data name="Config_InvalidJson" xml:space="preserve"><value>This file is not valid JSON.</value></data>
+  <data name="Config_WebClientType" xml:space="preserve"><value>This file corresponds to a "Web application" OAuth client. Create a "Desktop app" client, then download its JSON.</value></data>
+  <data name="Config_UnexpectedFormat" xml:space="preserve"><value>Unexpected format: this file does not look like a client_secret_….json downloaded from Google Cloud Console.</value></data>
+  <data name="Config_MissingClientId" xml:space="preserve"><value>The file's client_id field is missing or invalid.</value></data>
+  <data name="Config_MissingClientSecret" xml:space="preserve"><value>The file's client_secret field is missing or invalid.</value></data>
+
+  <!-- Core: Windows Credential Manager -->
+  <data name="Cred_SecretTooLong" xml:space="preserve"><value>Secret too long for the Windows Credential Manager.</value></data>
+  <data name="Cred_WriteFailed" xml:space="preserve"><value>Unable to write to the Windows Credential Manager (code {0}).</value></data>
 </root>

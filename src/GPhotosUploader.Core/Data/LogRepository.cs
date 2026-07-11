@@ -2,7 +2,7 @@ using GPhotosUploader.Core.Models;
 
 namespace GPhotosUploader.Core.Data;
 
-/// <summary>Table app_logs : journal persistant (en plus du fichier texte).</summary>
+/// <summary>app_logs table: persistent log (in addition to the text file).</summary>
 public class LogRepository
 {
     private readonly Database _db;
@@ -43,7 +43,7 @@ public class LogRepository
         return list;
     }
 
-    /// <summary>Purge les entrées plus anciennes que le nombre de jours donné.</summary>
+    /// <summary>Purges entries older than the given number of days.</summary>
     public int Purge(int keepDays)
     {
         using var conn = _db.OpenConnection();

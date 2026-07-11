@@ -4,26 +4,26 @@ using System.Resources;
 namespace GPhotosUploader.Core.Resources;
 
 /// <summary>
-/// Point d'accès unique aux chaînes traduites (i18n). Les textes sont stockés dans
-/// Strings.resx (anglais, langue par défaut/repli) et Strings.&lt;culture&gt;.resx
-/// (ex. Strings.fr.resx). La langue est celle de l'OS : <see cref="Culture"/> vaut
-/// par défaut <see cref="CultureInfo.CurrentUICulture"/> et peut être fixée au démarrage.
+/// Single access point for translated strings (i18n). The texts are stored in
+/// Strings.resx (English, default/fallback language) and Strings.&lt;culture&gt;.resx
+/// (e.g. Strings.fr.resx). The language is the one from the OS: <see cref="Culture"/> defaults
+/// to <see cref="CultureInfo.CurrentUICulture"/> and can be set at startup.
 ///
-/// Pour ajouter une langue : dupliquer Strings.resx en Strings.&lt;code&gt;.resx et
-/// traduire les valeurs. Aucune modification de code n'est nécessaire.
+/// To add a language: duplicate Strings.resx as Strings.&lt;code&gt;.resx and
+/// translate the values. No code change is necessary.
 /// </summary>
 public static class Loc
 {
     private static readonly ResourceManager Rm =
         new("GPhotosUploader.Core.Resources.Strings", typeof(Loc).Assembly);
 
-    /// <summary>Culture utilisée pour la résolution (par défaut : langue d'affichage de l'OS).</summary>
+    /// <summary>Culture used for resolution (default: the OS display language).</summary>
     public static CultureInfo Culture { get; set; } = CultureInfo.CurrentUICulture;
 
-    /// <summary>Chaîne traduite pour la clé donnée (renvoie la clé si elle est absente).</summary>
+    /// <summary>Translated string for the given key (returns the key if it is missing).</summary>
     public static string T(string key) => Rm.GetString(key, Culture) ?? key;
 
-    /// <summary>Chaîne traduite et formatée (string.Format avec la culture courante).</summary>
+    /// <summary>Translated and formatted string (string.Format with the current culture).</summary>
     public static string TF(string key, params object?[] args) =>
         string.Format(Culture, T(key), args);
 }

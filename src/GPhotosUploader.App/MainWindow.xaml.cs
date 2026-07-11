@@ -15,10 +15,10 @@ public partial class MainWindow : Window
     }
 
     /// <summary>
-    /// Fermeture propre : on arrête d'abord le scan et l'upload (les fichiers en cours
-    /// repassent en 'paused' dans SQLite) avant de laisser la fenêtre se fermer.
-    /// Un clic impatient supplémentaire sur la croix pendant l'arrêt est ignoré :
-    /// seul le Closing re-déclenché par Application.Shutdown() est laissé passer.
+    /// Clean shutdown: we first stop the scan and upload (files in progress
+    /// revert to 'paused' in SQLite) before letting the window close.
+    /// An extra impatient click on the close button during shutdown is ignored:
+    /// only the Closing re-triggered by Application.Shutdown() is allowed through.
     /// </summary>
     protected override async void OnClosing(CancelEventArgs e)
     {

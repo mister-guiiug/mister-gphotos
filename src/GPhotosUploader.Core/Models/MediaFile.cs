@@ -1,6 +1,6 @@
 namespace GPhotosUploader.Core.Models;
 
-/// <summary>Une image locale indexée dans SQLite (table media_files).</summary>
+/// <summary>A local image indexed in SQLite (media_files table).</summary>
 public class MediaFile
 {
     public long Id { get; set; }

@@ -1,6 +1,6 @@
 namespace GPhotosUploader.Core.Models;
 
-/// <summary>Un batch d'upload (table upload_batches).</summary>
+/// <summary>An upload batch (upload_batches table).</summary>
 public class UploadBatch
 {
     public long Id { get; set; }
@@ -12,7 +12,7 @@ public class UploadBatch
     public string Status { get; set; } = "running";
 }
 
-/// <summary>Une tentative d'upload individuelle (table upload_attempts).</summary>
+/// <summary>An individual upload attempt (upload_attempts table).</summary>
 public class UploadAttempt
 {
     public long Id { get; set; }
@@ -24,7 +24,7 @@ public class UploadAttempt
     public string? Error { get; set; }
 }
 
-/// <summary>Une entrée de journal (table app_logs).</summary>
+/// <summary>A log entry (app_logs table).</summary>
 public class LogEntry
 {
     public long Id { get; set; }

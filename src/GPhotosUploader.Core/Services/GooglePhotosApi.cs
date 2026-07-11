@@ -6,7 +6,7 @@ using GPhotosUploader.Core.Resources;
 
 namespace GPhotosUploader.Core.Services;
 
-/// <summary>Erreur retournée par l'API Google Photos, classée transitoire ou permanente.</summary>
+/// <summary>Error returned by the Google Photos API, classified as transient or permanent.</summary>
 public class GooglePhotosApiException : Exception
 {
     public int StatusCode { get; }
@@ -22,15 +22,15 @@ public class GooglePhotosApiException : Exception
     }
 }
 
-/// <summary>Résultat d'un élément dans une réponse batchCreate.</summary>
+/// <summary>Result of a single item in a batchCreate response.</summary>
 public record BatchCreateItemResult(string UploadToken, bool Success, string? MediaItemId, string? ErrorMessage);
 
 /// <summary>
-/// Client HTTP minimal de la Google Photos Library API :
-///  1. POST /v1/uploads            → envoi des octets, retourne un upload token (valable ~24 h) ;
-///  2. POST /v1/mediaItems:batchCreate → crée les médias (50 max par appel).
-/// Aucune autre capacité n'est supposée : depuis mars 2025 l'API ne permet de
-/// relire que les médias créés par l'application elle-même.
+/// Minimal HTTP client for the Google Photos Library API:
+///  1. POST /v1/uploads            → sends the bytes, returns an upload token (valid ~24 h);
+///  2. POST /v1/mediaItems:batchCreate → creates the media items (50 max per call).
+/// No other capability is assumed: since March 2025 the API only allows
+/// reading back media items created by the application itself.
 /// </summary>
 public class GooglePhotosApi
 {
@@ -41,7 +41,7 @@ public class GooglePhotosApi
 
     public GooglePhotosApi(HttpClient http) => _http = http;
 
-    /// <summary>Envoie les octets d'un fichier et retourne l'upload token.</summary>
+    /// <summary>Sends the bytes of a file and returns the upload token.</summary>
     public async Task<string> UploadBytesAsync(string accessToken, string filePath, string mimeType,
         IProgress<long>? bytesProgress, CancellationToken ct)
     {
@@ -66,7 +66,7 @@ public class GooglePhotosApi
         }
         catch (TaskCanceledException) when (!ct.IsCancellationRequested)
         {
-            // Timeout du HttpClient (et non annulation utilisateur) : erreur temporaire.
+            // HttpClient timeout (not a user cancellation): a transient error.
             throw new GooglePhotosApiException(0, Loc.T("Api_HttpTimeoutUpload"), isTransient: true);
         }
         using (response)
@@ -82,7 +82,7 @@ public class GooglePhotosApi
         return token;
     }
 
-    /// <summary>Crée les médias à partir des upload tokens (50 éléments max par appel).</summary>
+    /// <summary>Creates the media items from the upload tokens (50 items max per call).</summary>
     public async Task<List<BatchCreateItemResult>> BatchCreateAsync(string accessToken,
         IReadOnlyList<(string FileName, string UploadToken)> items, CancellationToken ct)
     {
@@ -168,7 +168,7 @@ public class GooglePhotosApi
         string detail = ExtractErrorMessage(body);
         bool transient = status switch
         {
-            408 or 425 => true, // timeouts et "too early" : rejouables par définition
+            408 or 425 => true, // timeouts and "too early": replayable by definition
             429 => true,
             >= 500 => true,
             403 when detail.Contains("quota", StringComparison.OrdinalIgnoreCase)
@@ -202,7 +202,7 @@ public class GooglePhotosApi
     }
 }
 
-/// <summary>Flux en lecture qui rapporte le nombre cumulé d'octets lus (progression d'upload).</summary>
+/// <summary>Read stream that reports the cumulative number of bytes read (upload progress).</summary>
 public class ProgressReadStream : Stream
 {
     private readonly Stream _inner;

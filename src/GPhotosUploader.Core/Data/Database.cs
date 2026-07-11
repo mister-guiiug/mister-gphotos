@@ -3,9 +3,9 @@ using Microsoft.Data.Sqlite;
 namespace GPhotosUploader.Core.Data;
 
 /// <summary>
-/// Point d'accès SQLite : chemin de la base, ouverture de connexions et migrations.
-/// La base est ouverte en mode WAL pour survivre aux arrêts brutaux, avec un
-/// busy_timeout pour tolérer les accès concurrents (scan + upload + UI).
+/// SQLite access point: database path, opening connections and migrations.
+/// The database is opened in WAL mode to survive abrupt shutdowns, with a
+/// busy_timeout to tolerate concurrent access (scan + upload + UI).
 /// </summary>
 public class Database
 {
@@ -49,9 +49,9 @@ public class Database
         foreach (var (version, script) in Migrations.All)
         {
             if (version <= current) continue;
-            // BeginTransaction (Serializable -> BEGIN IMMEDIATE) prend le verrou d'écriture ;
-            // on revérifie la version à l'intérieur au cas où un autre processus vient
-            // d'appliquer la même migration.
+            // BeginTransaction (Serializable -> BEGIN IMMEDIATE) takes the write lock;
+            // we re-check the version inside in case another process has just
+            // applied the same migration.
             using var tx = conn.BeginTransaction();
             using (var check = conn.CreateCommand())
             {
@@ -80,7 +80,7 @@ public class Database
         }
     }
 
-    /// <summary>Format ISO 8601 UTC utilisé pour toutes les dates en base.</summary>
+    /// <summary>ISO 8601 UTC format used for all dates in the database.</summary>
     public static string ToDbDate(DateTime dt) => dt.ToUniversalTime().ToString("o");
 
     public static DateTime? FromDbDate(object? value)

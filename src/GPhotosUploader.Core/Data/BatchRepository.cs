@@ -2,7 +2,7 @@ using GPhotosUploader.Core.Models;
 
 namespace GPhotosUploader.Core.Data;
 
-/// <summary>Tables upload_batches et upload_attempts : historique des uploads.</summary>
+/// <summary>upload_batches and upload_attempts tables: upload history.</summary>
 public class BatchRepository
 {
     private readonly Database _db;

@@ -1,6 +1,6 @@
 namespace GPhotosUploader.Core.Models;
 
-/// <summary>Compte Google connecté (table google_account, une seule ligne).</summary>
+/// <summary>Connected Google account (google_account table, a single row).</summary>
 public class GoogleAccount
 {
     public string? Email { get; set; }
