@@ -6,6 +6,9 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <LangVersion>latest</LangVersion>
     <RootNamespace>GPhotosUploader.Core</RootNamespace>
+    <!-- DLL produite : MisterGPhotos.Core.dll (le RootNamespace, donc le nom de base des
+         ressources, reste GPhotosUploader.Core — la localisation continue de fonctionner). -->
+    <AssemblyName>MisterGPhotos.Core</AssemblyName>
     <!-- Langue par défaut des ressources (Strings.resx) = anglais ; les .fr.resx
          produisent des assemblys satellites chargés selon la langue de l'OS. -->
     <NeutralLanguage>en</NeutralLanguage>

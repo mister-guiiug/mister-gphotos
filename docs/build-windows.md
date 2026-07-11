@@ -129,23 +129,25 @@ After a `dotnet build -c Release`, the binaries are produced under each project:
 
 ```
 src/GPhotosUploader.Core/bin/Release/net8.0/
-    GPhotosUploader.Core.dll
+    MisterGPhotos.Core.dll
+    fr/MisterGPhotos.Core.resources.dll   <- French localization satellite assembly
 
 src/GPhotosUploader.App/bin/Release/net8.0-windows/
-    GooglePhotosLocalUploader.exe      <- WPF executable (AssemblyName of the App project)
-    GooglePhotosLocalUploader.dll
-    GPhotosUploader.Core.dll
+    MisterGPhotos.exe      <- WPF executable (AssemblyName of the App project)
+    MisterGPhotos.dll
+    MisterGPhotos.Core.dll
     CommunityToolkit.Mvvm.dll
     Microsoft.Data.Sqlite.dll (+ SQLitePCLRaw dependencies)
     ...
 
 src/GPhotosUploader.Tests/bin/Release/net8.0/
-    GPhotosUploader.Tests.dll
+    MisterGPhotos.Tests.dll
 ```
 
-Note that the executable is named **`GooglePhotosLocalUploader.exe`** (and not
-"GPhotosUploader.App.exe"): this is the `AssemblyName` defined in
-`src/GPhotosUploader.App/GPhotosUploader.App.csproj`.
+Note that the assembly output names (`MisterGPhotos.exe`, `MisterGPhotos.Core.dll`,
+`MisterGPhotos.Tests.dll`) are set via the `AssemblyName` property in each `.csproj`,
+so they match the `mister-gphotos` repository name. The project folders and namespaces
+keep the `GPhotosUploader.*` prefix.
 
 The executable produced by `dotnet build` is **framework-dependent**: it requires the
 .NET 8 (Desktop) runtime to be installed on the machine. For an executable that works
@@ -185,10 +187,10 @@ Characteristics:
 
 ```
 Publish complete: <root>\dist\win-x64
-Executable: <root>\dist\win-x64\GooglePhotosLocalUploader.exe
+Executable: <root>\dist\win-x64\MisterGPhotos.exe
 ```
 
-You can run `dist\win-x64\GooglePhotosLocalUploader.exe` directly, or copy the entire
+You can run `dist\win-x64\MisterGPhotos.exe` directly, or copy the entire
 `dist\win-x64\` folder to another Windows 10/11 x64 machine.
 
 ### Building the Windows installer (optional)

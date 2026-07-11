@@ -383,7 +383,7 @@ does not close abruptly.
 - **Compilation / tests**: `dotnet build` and `dotnet test` on `GooglePhotosUploader.sln`
   (script `build/build.ps1`).
 - **Publishing**: `build/publish.ps1` produces a **self-contained win-x64** executable
-  in `dist\win-x64\` (`GooglePhotosLocalUploader.exe`) — no .NET installation required on
+  in `dist\win-x64\` (`MisterGPhotos.exe`) — no .NET installation required on
   the target machine.
 - **Installer**: `installer/setup.iss` (Inno Setup).
 - **Local data**: everything lives under `%APPDATA%\GooglePhotosLocalUploader\`; the UI's

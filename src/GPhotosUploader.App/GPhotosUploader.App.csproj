@@ -8,7 +8,9 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <LangVersion>latest</LangVersion>
     <RootNamespace>GPhotosUploader.App</RootNamespace>
-    <AssemblyName>GooglePhotosLocalUploader</AssemblyName>
+    <!-- Nom de l'assembly produite (MisterGPhotos.exe/.dll), aligné sur le nom du dépôt
+         mister-gphotos. Le RootNamespace et le nom d'affichage du produit restent inchangés. -->
+    <AssemblyName>MisterGPhotos</AssemblyName>
     <ApplicationTitle>Google Photos Local Uploader</ApplicationTitle>
     <Version>1.0.0</Version>
     <Authors>Google Photos Local Uploader</Authors>

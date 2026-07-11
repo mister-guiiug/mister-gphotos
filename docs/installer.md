@@ -37,7 +37,7 @@ This script runs `dotnet publish` on `src\GPhotosUploader.App\GPhotosUploader.Ap
 dist\win-x64\
 ```
 
-with the executable `dist\win-x64\GooglePhotosLocalUploader.exe`. The published application embeds the .NET runtime: **no prior .NET installation is required on the target machine.**
+with the executable `dist\win-x64\MisterGPhotos.exe`. The published application embeds the .NET runtime: **no prior .NET installation is required on the target machine.**
 
 Optional but recommended before publishing: `.\build\build.ps1` compiles the solution and runs the test suite (`dotnet restore` + `dotnet build` + `dotnet test`).
 
@@ -100,7 +100,7 @@ The produced installer is **not digitally signed**: the project provides neither
 
 If you have your own code-signing certificate (an OV/EV certificate purchased from a certificate authority, or via Azure Trusted Signing), you can sign:
 
-1. **The published binaries** after the `publish.ps1` step (for example `dist\win-x64\GooglePhotosLocalUploader.exe`) with `signtool sign`.
+1. **The published binaries** after the `publish.ps1` step (for example `dist\win-x64\MisterGPhotos.exe`) with `signtool sign`.
 2. **The installer itself**, either by signing `dist\installer\mister-gphotos-Setup-1.0.0.exe` after compilation, or by configuring Inno Setup's `SignTool` directive in `setup.iss`.
 
 None of these steps are required for the installer to work; they only serve to reduce Windows security warnings.

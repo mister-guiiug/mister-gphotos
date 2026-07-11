@@ -10,7 +10,7 @@
 #ifndef MyAppVersion
   #define MyAppVersion "1.0.0"
 #endif
-#define MyAppExeName "GooglePhotosLocalUploader.exe"
+#define MyAppExeName "MisterGPhotos.exe"
 
 [Setup]
 AppId={{7E9D2C4A-1F5B-4E83-9A6C-2B8D0E4F6153}

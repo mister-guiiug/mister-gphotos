@@ -71,7 +71,7 @@ Prerequisites: [.NET 8 SDK](https://dotnet.microsoft.com/download/dotnet/8.0), a
 
 # 2. Publish the self-contained win-x64 executable to dist\win-x64\
 .\build\publish.ps1
-# -> dist\win-x64\GooglePhotosLocalUploader.exe
+# -> dist\win-x64\MisterGPhotos.exe
 
 # 3. (Optional) Build the installer into dist\installer\
 iscc installer\setup.iss

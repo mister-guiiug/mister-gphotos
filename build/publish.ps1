@@ -18,4 +18,4 @@ dotnet publish "$root\src\GPhotosUploader.App\GPhotosUploader.App.csproj" `
 if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
 Write-Host "Publish complete: $out" -ForegroundColor Green
-Write-Host "Executable: $out\GooglePhotosLocalUploader.exe"
+Write-Host "Executable: $out\MisterGPhotos.exe"
