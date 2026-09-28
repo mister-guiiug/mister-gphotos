@@ -2,7 +2,7 @@
 
 Desktop application for **Windows 10 / 11** that uploads your local photos to **Google Photos**, folder by folder, in a reliable and resumable way. It scans a root folder (subfolders included), builds a local inventory (SQLite database with a SHA-256 fingerprint of each file), then uploads the images in batches to your Google account — with pause, resume after a network outage or application shutdown, and a detailed log.
 
-The interface is available in several languages and follows your operating system's display language (English by default, French also provided).
+The interface is available in several languages and follows your operating system's display language (English by default, French also provided); the 1.0.0 Release predates this and is in French only.
 
 ---
 
@@ -19,7 +19,7 @@ The interface is available in several languages and follows your operating syste
 
 - It **never deletes** a local file or a Google Photos media.
 - It **does not read** your existing Google Photos library (see the box below).
-- It does not upload videos or files exceeding the configured limit (200 MB maximum, Google Photos' photo limit).
+- It does not upload files exceeding the configured limit (200 MB maximum, Google Photos' photo limit), nor videos as long as no video extension is added to the list in the "Settings" tab (none by default).
 - It does not offer the "storage saver" option: the Google Photos API does not provide it. Uploads are done in original quality.
 
 > ### ⚠️ Limits of duplicate detection
@@ -38,12 +38,12 @@ The interface is available in several languages and follows your operating syste
 
 ## Prerequisites
 
-| Prerequisite | Detail |
-|---|---|
-| System | Windows 10 or Windows 11 (x64) |
-| Google account | A Google Photos account with enough storage |
+| Prerequisite          | Detail                                                                                                                                                                       |
+| --------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| System                | Windows 10 or Windows 11 (x64)                                                                                                                                               |
+| Google account        | A Google Photos account with enough storage                                                                                                                                  |
 | Personal OAuth client | A Google Cloud project with a "Desktop app" type OAuth client that **you** create (Client ID + Client Secret) — see [docs/google-cloud-setup.md](docs/google-cloud-setup.md) |
-| Runtime | None: the published version is self-contained (the .NET 8 SDK is only required to compile from source) |
+| Runtime               | None: the published version is self-contained (the .NET 8 SDK is only required to compile from source)                                                                       |
 
 The application does not use a shared OAuth client: each user creates their own in the Google Cloud Console. This is a one-time step of about 15 minutes, guided by the **built-in wizard** ("Settings" tab) or step by step in [docs/google-cloud-setup.md](docs/google-cloud-setup.md). Google exposes no API allowing this creation to be fully automated (see [docs/known-limitations.md](docs/known-limitations.md)). No Google password is ever entered in the application: sign-in happens in your browser (OAuth 2.0 Authorization Code + PKCE, local redirect `http://127.0.0.1:{port}/`).
 
@@ -54,10 +54,12 @@ The application does not use a shared OAuth client: each user creates their own 
 ### Option A — Via the installer (recommended)
 
 1. Get the installer `mister-gphotos-Setup-<version>.exe` from the repository's **Releases** page (generated automatically by the CI/CD on each `vX.Y.Z` tag, see [docs/ci-cd.md](docs/ci-cd.md)), or build it locally (`dist\installer\`).
-2. Run it: per-user installation, without administrator rights (`PrivilegesRequired=lowest`), wizard in English, optional desktop icon.
+2. Run it: per-user installation, without administrator rights (`PrivilegesRequired=lowest`), wizard in French, optional desktop icon.
 3. Start "Google Photos Local Uploader" from the Start menu.
 
 A **portable version** (a single `.exe` file, no installation) is also attached to each Release.
+
+The only Release to date, **1.0.0** (July 2026), predates the multilingual interface and the MisterGPhotos rename: its interface is in French only, its data lives in `%APPDATA%\GooglePhotosLocalUploader\` and its secrets in the Credential Manager entries `GooglePhotosLocalUploader/RefreshToken` and `GooglePhotosLocalUploader/OAuthClientSecret`. The folders and entries named in this README are those of a build from the current source (Option B), which does not read the 1.0.0 locations.
 
 On uninstall, the local data (`%APPDATA%\MisterGPhotos`) and the secrets in the Windows Credential Manager are deliberately **not** removed: first use the "Delete the application's local data" button ("Settings" tab) if you want to erase everything.
 
@@ -96,7 +98,7 @@ iscc installer\setup.iss
 ## Local data, secrets and privacy
 
 - **Where is the data?** In `%APPDATA%\MisterGPhotos\`: the `app.db` database (inventory, settings, batch history — log entries in the database older than 90 days are purged at startup) and the `logs\` folder (daily log files, kept until you delete them).
-- **Where are the secrets?** The Google refresh token and the OAuth Client Secret are stored in the **Windows Credential Manager** (entries `MisterGPhotos/RefreshToken` and `MisterGPhotos/OAuthClientSecret`), encrypted by Windows — never in clear text on the disk. Only the Client ID (not secret) is kept in the SQLite database.
+- **Where are the secrets?** The Google refresh token and the OAuth Client Secret are stored in the **Windows Credential Manager** (entries `MisterGPhotos/RefreshToken` and `MisterGPhotos/OAuthClientSecret`), encrypted by Windows — never in clear text on the disk. Of the OAuth credentials, only the Client ID (not secret) is kept in the SQLite database; the database also holds the connected account's email address and granted scopes, and the email is written to the log at sign-in.
 - **Permissions requested from Google**: the minimal scopes `photoslibrary.appendonly` (add media), `photoslibrary.readonly.appcreateddata` (read back only the media created by the application), `openid` and `email` (display the connected account). The application can neither read the rest of your library nor delete anything.
 - **Erase everything**: the "Delete the application's local data" button ("Settings" tab) revokes the token, erases the secrets from the Credential Manager, deletes the database and the logs, then closes the application. Your local photos and your Google Photos media are not touched.
 
@@ -116,16 +118,16 @@ The rest of the stack: `Microsoft.Data.Sqlite` for the local inventory (no datab
 
 ## Documentation
 
-| Document | Audience | Content |
-|---|---|---|
-| [docs/google-cloud-setup.md](docs/google-cloud-setup.md) | Everyone | Create your Google Cloud project and your "Desktop app" OAuth client (Client ID / Client Secret), step by step |
-| [docs/user-guide.md](docs/user-guide.md) | Everyone | Complete usage guide: screens, file statuses, pause/resume, filters, log export, FAQ |
-| [docs/known-limitations.md](docs/known-limitations.md) | Everyone | Known limits: duplicate detection, API quotas, storage, OAuth Test mode |
-| [docs/architecture.md](docs/architecture.md) | Developers | Architecture of the `MisterGPhotos.Core` / `MisterGPhotos.App` projects, services, upload flow and resume logic |
-| [docs/database-schema.md](docs/database-schema.md) | Developers | Schema of the SQLite database (`app.db`): tables, statuses, migrations |
-| [docs/build-windows.md](docs/build-windows.md) | Developers | Compilation, tests and self-contained publication (`build\publish.ps1`) |
-| [docs/installer.md](docs/installer.md) | Developers | Creation of the Windows installer with Inno Setup (`installer\setup.iss`) |
-| [docs/ci-cd.md](docs/ci-cd.md) | Developers | GitHub Actions CI/CD: automatic tests and Release (installer + portable exe) on `vX.Y.Z` tag |
+| Document                                                 | Audience   | Content                                                                                                         |
+| -------------------------------------------------------- | ---------- | --------------------------------------------------------------------------------------------------------------- |
+| [docs/google-cloud-setup.md](docs/google-cloud-setup.md) | Everyone   | Create your Google Cloud project and your "Desktop app" OAuth client (Client ID / Client Secret), step by step  |
+| [docs/user-guide.md](docs/user-guide.md)                 | Everyone   | Complete usage guide: screens, file statuses, pause/resume, filters, log export, FAQ                            |
+| [docs/known-limitations.md](docs/known-limitations.md)   | Everyone   | Known limits: duplicate detection, API quotas, storage, OAuth Test mode                                         |
+| [docs/architecture.md](docs/architecture.md)             | Developers | Architecture of the `MisterGPhotos.Core` / `MisterGPhotos.App` projects, services, upload flow and resume logic |
+| [docs/database-schema.md](docs/database-schema.md)       | Developers | Schema of the SQLite database (`app.db`): tables, statuses, migrations                                          |
+| [docs/build-windows.md](docs/build-windows.md)           | Developers | Compilation, tests and self-contained publication (`build\publish.ps1`)                                         |
+| [docs/installer.md](docs/installer.md)                   | Developers | Creation of the Windows installer with Inno Setup (`installer\setup.iss`)                                       |
+| [docs/ci-cd.md](docs/ci-cd.md)                           | Developers | GitHub Actions CI/CD: automatic tests and Release (installer + portable exe) on `vX.Y.Z` tag                    |
 
 ---
 
@@ -136,7 +138,7 @@ MisterGPhotos.sln
 src/
   MisterGPhotos.Core/    Logique métier : modèles, accès SQLite, scan, OAuth, client API, orchestration d'upload
   MisterGPhotos.App/     Interface WPF (MainWindow, assistant Google Cloud, ViewModels)
-  MisterGPhotos.Tests/   Tests unitaires (54 tests : logique, base de données, scanner, identifiants OAuth)
+  MisterGPhotos.Tests/   Tests unitaires (59 tests : logique, base de données, scanner, identifiants OAuth, localisation)
 build/
   build.ps1                Restauration, compilation, tests
   publish.ps1              Publication auto-contenue win-x64 dans dist\win-x64\
@@ -149,4 +151,4 @@ docs/                      Documentation détaillée (voir la table ci-dessus)
 
 ---
 
-*Google Photos is a trademark of Google LLC. This application is an independent tool, not affiliated with Google; it uses the public Google Photos Library API with the OAuth client that you create yourself.*
+_Google Photos is a trademark of Google LLC. This application is an independent tool, not affiliated with Google; it uses the public Google Photos Library API with the OAuth client that you create yourself._
