@@ -10,7 +10,7 @@ The first part (building) is aimed at a developer; the second (installer behavio
 
 | Tool | Role | Where to get it |
 |---|---|---|
-| .NET 8 SDK | Compile and publish the application | <https://dotnet.microsoft.com/download/dotnet/8.0> |
+| .NET 10 SDK | Compile and publish the application | <https://dotnet.microsoft.com/download/dotnet/10.0> |
 | Inno Setup 6 | Compile the installer script `installer/setup.iss` | <https://jrsoftware.org/isdl.php> |
 
 After installing Inno Setup 6, make sure the command-line compiler `iscc` is available. If it is not, add its folder to `PATH` (default installation: `C:\Program Files (x86)\Inno Setup 6`) or invoke it by its full path:

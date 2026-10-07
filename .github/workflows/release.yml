@@ -30,10 +30,10 @@ jobs:
       - name: Récupérer les sources
         uses: actions/checkout@v7
 
-      - name: Installer le SDK .NET 8
+      - name: Installer le SDK .NET 10
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: '8.0.x'
+          dotnet-version: '10.0.x'
 
       - name: Déterminer la version et le tag
         id: meta

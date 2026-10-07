@@ -5,7 +5,7 @@ on Windows 10 or 11, from source. The "Prerequisites" and "Getting the sources" 
 are accessible to everyone; the following sections (compilation, artifacts, publishing,
 troubleshooting) are intended for a developer or a user comfortable with the command line.
 
-> **Important:** the application is a WPF application targeting `net8.0-windows`.
+> **Important:** the application is a WPF application targeting `net10.0-windows`.
 > Compilation works **only on Windows** — it is not possible to build it on
 > Linux or macOS.
 
@@ -15,19 +15,19 @@ troubleshooting) are intended for a developer or a user comfortable with the com
 
 | Tool | Version | Required? | Download |
 |---|---|---|---|
-| .NET SDK | **8.x** (SDK, not just the runtime) | Yes | <https://dotnet.microsoft.com/download/dotnet/8.0> |
+| .NET SDK | **10.x** (SDK, not just the runtime) | Yes | <https://dotnet.microsoft.com/download/dotnet/10.0> |
 | Windows | 10 or 11, x64 | Yes | — |
 | PowerShell | 5.1 (included with Windows) or PowerShell 7 | Yes (for the `build/` scripts) | — |
 | Git | Recent | No (a source ZIP is enough) | <https://git-scm.com/download/win> |
 | Inno Setup | **6** | No (only to build the installer) | <https://jrsoftware.org/isdl.php> |
 
-To verify that the .NET 8 SDK is installed, open a terminal (PowerShell) and type:
+To verify that the .NET 10 SDK is installed, open a terminal (PowerShell) and type:
 
 ```powershell
 dotnet --list-sdks
 ```
 
-You should see at least one line starting with `8.` (for example `8.0.404`). If the
+You should see at least one line starting with `10.` (for example `10.0.401`). If the
 `dotnet` command is not recognized, see the [Troubleshooting](#7-common-troubleshooting)
 section.
 
@@ -57,11 +57,11 @@ The project root must contain:
 
 ```
 MisterGPhotos.sln        .NET solution (3 projects)
-src/MisterGPhotos.Core/       Library: models, SQLite database, services (net8.0)
+src/MisterGPhotos.Core/       Library: models, SQLite database, services (net10.0)
 src/MisterGPhotos.Core/Resources/  Localization resources
-src/MisterGPhotos.App/        WPF application (net8.0-windows)
+src/MisterGPhotos.App/        WPF application (net10.0-windows)
 src/MisterGPhotos.App/Localization/  Localization
-src/MisterGPhotos.Tests/      xUnit tests (net8.0) — 59 tests
+src/MisterGPhotos.Tests/      xUnit tests (net10.0) — 59 tests
 build/build.ps1                 Script: restore + compile + tests
 build/publish.ps1               Script: self-contained win-x64 publish
 installer/setup.iss             Inno Setup script (Windows installer)
@@ -128,11 +128,11 @@ dotnet run --project src\MisterGPhotos.App\MisterGPhotos.App.csproj -c Debug
 After a `dotnet build -c Release`, the binaries are produced under each project:
 
 ```
-src/MisterGPhotos.Core/bin/Release/net8.0/
+src/MisterGPhotos.Core/bin/Release/net10.0/
     MisterGPhotos.Core.dll
     fr/MisterGPhotos.Core.resources.dll   <- French localization satellite assembly
 
-src/MisterGPhotos.App/bin/Release/net8.0-windows/
+src/MisterGPhotos.App/bin/Release/net10.0-windows/
     MisterGPhotos.exe      <- WPF executable (AssemblyName of the App project)
     MisterGPhotos.dll
     MisterGPhotos.Core.dll
@@ -140,7 +140,7 @@ src/MisterGPhotos.App/bin/Release/net8.0-windows/
     Microsoft.Data.Sqlite.dll (+ SQLitePCLRaw dependencies)
     ...
 
-src/MisterGPhotos.Tests/bin/Release/net8.0/
+src/MisterGPhotos.Tests/bin/Release/net10.0/
     MisterGPhotos.Tests.dll
 ```
 
@@ -151,7 +151,7 @@ matching the `mister-gphotos` repository (the product display name stays
 "Google Photos Local Uploader").
 
 The executable produced by `dotnet build` is **framework-dependent**: it requires the
-.NET 8 (Desktop) runtime to be installed on the machine. For an executable that works
+.NET 10 (Desktop) runtime to be installed on the machine. For an executable that works
 without a prior .NET installation, use the self-contained publish below.
 
 ---
@@ -177,7 +177,7 @@ dotnet publish src\MisterGPhotos.App\MisterGPhotos.App.csproj `
 
 Characteristics:
 
-- **Self-contained** (`--self-contained true`): the .NET 8 runtime is embedded. The
+- **Self-contained** (`--self-contained true`): the .NET 10 runtime is embedded. The
   target machine has **nothing to install** beforehand.
 - **Multi-file** (`PublishSingleFile=false`): the folder contains the executable and its
   DLLs, which is the format expected by the installer script.
@@ -218,17 +218,17 @@ before uninstalling if you want to erase everything.
 
 ### "dotnet" is not recognized as a command
 
-- The .NET 8 SDK is not installed: download it from
-  <https://dotnet.microsoft.com/download/dotnet/8.0> (be sure to choose the **SDK**, not
+- The .NET 10 SDK is not installed: download it from
+  <https://dotnet.microsoft.com/download/dotnet/10.0> (be sure to choose the **SDK**, not
   the "Runtime" only, and the **x64** installer).
 - If you just installed it, **close and reopen** the terminal (the `PATH` is only updated
   for new terminals).
-- Then verify with `dotnet --list-sdks` that an `8.x` version appears.
+- Then verify with `dotnet --list-sdks` that a `10.x` version appears.
 
 ### The SDK is installed but compilation fails (NETSDK1045 or similar)
 
-You probably only have an older SDK (6.x, 7.x). The project targets
-`net8.0` / `net8.0-windows`: install the **8.x** SDK in addition (multiple SDKs can
+You probably only have an older SDK (8.x, 9.x). The project targets
+`net10.0` / `net10.0-windows`: install the **10.x** SDK in addition (multiple SDKs can
 coexist without conflict).
 
 ### NuGet restore fails behind a corporate proxy (NU1301 errors, timeouts)
