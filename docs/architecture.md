@@ -5,7 +5,7 @@
 
 ## 1. Overview
 
-Google Photos Local Uploader is a Windows 10/11 desktop application (WPF, .NET 8, C#)
+Google Photos Local Uploader is a Windows 10/11 desktop application (WPF, .NET 10, C#)
 that:
 
 1. **scans** a local image folder recursively,
@@ -29,24 +29,24 @@ Non-negotiable principles, enforced in the code:
   This disclaimer text now lives in the localization resources (`Strings.resx` /
   `Strings.fr.resx`, key `"Disclaimer_Duplicates"`).
 
-## 2. Stack choice: WPF + .NET 8
+## 2. Stack choice: WPF + .NET 10
 
 The requirement is a **Windows-only** application, durable, with native access to
 Windows APIs (Credential Manager via P/Invoke `advapi32`), intensive file processing
 (SHA-256 hashing, HTTP streaming of large files) and a rich but classic interface
 (tabs, tables, progress bars).
 
-| Criterion | **WPF / .NET 8 (chosen)** | .NET MAUI | Avalonia | Electron |
+| Criterion | **WPF / .NET 10 (chosen)** | .NET MAUI | Avalonia | Electron |
 |---|---|---|---|---|
 | Target | Windows desktop, mature since 2006 | Mobile-first; Windows desktop goes through WinUI 3, still-young ecosystem | Cross-platform, but adds an abstraction layer that is useless for Windows-only | Cross-platform via Chromium |
 | Native Windows access (Credential Manager, `HttpListener` loopback) | Direct (trivial P/Invoke, same runtime) | Possible but through per-platform abstractions | Possible but outside the framework core | Requires native Node modules or bridges |
 | Footprint | Reasonable self-contained executable, a single .NET process | Comparable, but with Windows App SDK dependencies | Comparable | A full Chromium embedded (~200 MB, several processes, high RAM) |
 | I/O + hash + background upload performance | Excellent: `Task`, `async/await`, native .NET streams | Equivalent (same runtime) but no benefit here | Equivalent | JavaScript/Node: fine but less suited to controlled binary streaming |
 | Tooling / tests | `dotnet build`, `dotnet test`, xUnit, proven MVVM (CommunityToolkit.Mvvm) | Still stabilizing | Good but smaller ecosystem | Web ecosystem, but heavier desktop tests |
-| Longevity | Supported component of .NET 8 (LTS) | High rate of change | Dynamic open-source project but external to Microsoft | Depends on the Chromium cadence |
+| Longevity | Supported component of .NET 10 (LTS, supported until November 14, 2028) | High rate of change | Dynamic open-source project but external to Microsoft | Depends on the Chromium cadence |
 
 Conclusion: for an **exclusively Windows** application, with no web or mobile need,
-WPF on .NET 8 is the simplest, most stable and most performant choice.
+WPF on .NET 10 is the simplest, most stable and most performant choice.
 MAUI and Avalonia would pay a cross-platform abstraction cost with no benefit;
 Electron would additionally pay a memory/size cost that is unjustifiable for a file uploader.
 

@@ -43,7 +43,7 @@ The interface is available in several languages and follows your operating syste
 | System                | Windows 10 or Windows 11 (x64)                                                                                                                                               |
 | Google account        | A Google Photos account with enough storage                                                                                                                                  |
 | Personal OAuth client | A Google Cloud project with a "Desktop app" type OAuth client that **you** create (Client ID + Client Secret) — see [docs/google-cloud-setup.md](docs/google-cloud-setup.md) |
-| Runtime               | None: the published version is self-contained (the .NET 8 SDK is only required to compile from source)                                                                       |
+| Runtime               | None: the published version is self-contained (the .NET 10 SDK is only required to compile from source)                                                                      |
 
 The application does not use a shared OAuth client: each user creates their own in the Google Cloud Console. This is a one-time step of about 15 minutes, guided by the **built-in wizard** ("Settings" tab) or step by step in [docs/google-cloud-setup.md](docs/google-cloud-setup.md). Google exposes no API allowing this creation to be fully automated (see [docs/known-limitations.md](docs/known-limitations.md)). No Google password is ever entered in the application: sign-in happens in your browser (OAuth 2.0 Authorization Code + PKCE, local redirect `http://127.0.0.1:{port}/`).
 
@@ -65,7 +65,7 @@ On uninstall, the local data (`%APPDATA%\MisterGPhotos`) and the secrets in the 
 
 ### Option B — Compilation from source (developers)
 
-Prerequisites: [.NET 8 SDK](https://dotnet.microsoft.com/download/dotnet/8.0), and [Inno Setup 6](https://jrsoftware.org/isdl.php) if you want to produce the installer.
+Prerequisites: [.NET 10 SDK](https://dotnet.microsoft.com/download/dotnet/10.0), and [Inno Setup 6](https://jrsoftware.org/isdl.php) if you want to produce the installer.
 
 ```powershell
 # 1. Build the solution and run the tests (59 tests)
@@ -106,7 +106,7 @@ iscc installer\setup.iss
 
 ## Technical choices (in brief)
 
-The application is written in **C# / .NET 8** with **WPF**, rather than:
+The application is written in **C# / .NET 10** with **WPF**, rather than:
 
 - **Electron / embedded web**: much heavier (a full Chromium engine) for a local application that mostly does file hashing and HTTP; WPF gives a native, lean and fast Windows interface.
 - **WinUI 3 / MAUI**: relevant targets for cross-platform or modern design, but with less stable tooling; WPF is mature, perfectly supported on Windows 10/11 and sufficient for this interface.

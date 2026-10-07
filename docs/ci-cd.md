@@ -9,7 +9,7 @@ manually (**Actions** tab → "Run workflow").
 
 **What it does**, on a `windows-latest` runner:
 
-1. installs the .NET 8 SDK;
+1. installs the .NET 10 SDK;
 2. restores and builds the solution in `Release`;
 3. runs the 59 xUnit tests;
 4. publishes the test report (`*.trx`) as an artifact.
