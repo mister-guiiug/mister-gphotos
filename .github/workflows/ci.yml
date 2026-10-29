@@ -8,6 +8,10 @@ on:
     branches: [main, master]
   workflow_dispatch:
 
+# Lecture seule : la CI compile, teste et dépose un artefact, rien de plus.
+permissions:
+  contents: read
+
 jobs:
   build-and-test:
     runs-on: windows-latest
