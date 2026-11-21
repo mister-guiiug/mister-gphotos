@@ -26,7 +26,7 @@ jobs:
       - name: Installer le SDK .NET 10
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: '10.0.x'
+          dotnet-version: '10.0.404'
 
       - name: Restaurer les dépendances
         run: dotnet restore MisterGPhotos.sln
